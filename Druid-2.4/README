@@ -1,0 +1,47 @@
+
+
+
+
+
+Dependency
+
+lcio: v01-51-02 or higher
+root: v5.30.02 or higher
+
+The lcio path is supposed to be calrified in env.sh
+while root path is set though ROOTSYS. You can add the following lines to env.sh
+if needed: 
+
+export ROOTSYS=$yourrootsystem
+export PATH=$ROOTSYS/bin:$PATH
+export LD_LIBRARY_PATH=$ROOTSYS/lib:$LD_LIBRARY_PATH
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Run Druid:
+
+After compilation, do 
+
+bin/Druid
+
+it shows the supported options, where you can specify the input lcio data file, geometry file and event number you want to start with.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are a few options in current release to save machine time. 
+
+1, Projective view, by default is muted. 
+You can change the value of FlagMultiView at line 50 of Druid.cc to reactive. 
+
+2, A row of four buttons can be found at the Druid GUI. 
+
+   Third button: used to swithch between minimal display senario or full display senario:
+   At minimal senario, only simulated detector hits, MCParticle, ReconParticle and clusters are displayed;
+   At full senario, Druid displays everything it can.
+   Druid judges a collection to be displayed or not by its type, which can be personalized at loadevent.cc. 
+   The default setting is minimal display senario. 
+
+   Fouth button: used to remove/add texted to displayed object. 
+   By default, no text are attached to the displayed objects expect MCParticles/reconstructed particles.
+
+

@@ -1,0 +1,43 @@
+/Mokka/init/detectorModel ILD_o2_v06
+/Mokka/init/EditGeometry/rmSubDetector SServices_O2_v00
+#/Mokka/init/subDetector SHcalRpc01
+#/Mokka/init/EditGeometry/addSubDetector SEcal03p01
+#/Mokka/init/EditGeometry/addSubDetector SField01
+
+#/Mokka/init/dbHost 202.122.37.75
+#/Mokka/init/user consult
+#/Mokka/init/dbPasswd consult
+
+#/Mokka/init/lcioFilename /besfs/groups/higgs/users/zhengxy/Geo/cooking/ild_o2_v05.slcio
+#/Mokka/init/initialMacroFile /besfs/groups/higgs/users/zhengxy/Geo/tmp_steer/event_ild_v05.macro
+#/Mokka/init/MokkaGearFileName /besfs/groups/higgs/users/zhengxy/Geo/cooking/ILD_o2_v05.xml
+/Mokka/init/globalModelParameter TPC_outer_radius 1400
+/Mokka/init/globalModelParameter TPC_Ecal_Hcal_barrel_halfZ 1900
+/Mokka/init/globalModelParameter Ecal_Barrel_halfZ 1900
+
+/Mokka/init/globalModelParameter Ecal_Sc_Si_mix 00000000
+/Mokka/init/globalModelParameter Ecal_nlayers1 10
+/Mokka/init/globalModelParameter Ecal_nlayers2 5
+/Mokka/init/globalModelParameter Ecal_nlayers3 0
+/Mokka/init/globalModelParameter Ecal_radiator_layers_set1_thickness 4.2
+/Mokka/init/globalModelParameter Ecal_radiator_layers_set2_thickness 8.4
+/Mokka/init/globalModelParameter Ecal_radiator_layers_set3_thickness 0
+/Mokka/init/globalModelParameter Ecal_Si_thickness 0.8 mm
+
+/Mokka/init/globalModelParameter Hcal_nlayers 45
+
+/Mokka/init/globalModelParameter    Hcal_cells_size   1
+/Mokka/init/globalModelParameter    DHcal_max_step    1
+/Mokka/init/globalModelParameter    PadSeparation     0
+
+/Mokka/init/globalModelParameter Ecal_endcap_outer_radius 1500
+
+
+#/Mokka/init/printLevel 0
+#/Mokka/init/lcioDetailedShowerMode true
+#/Mokka/init/userInitBool WriteCompleteHepEvt true
+#/Mokka/init/lcioWriteMode WRITE_NEW
+#/Mokka/init/lcioStoreCalHitPosition true
+
+#/Mokka/init/BatchMode true
+

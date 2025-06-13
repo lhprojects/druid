@@ -1,0 +1,16 @@
+# First make sure that you are in the right ROOT surrounding 
+# if the root is installed by source code or pre-compiled binary
+# source <ROOTSYS>/bin/thisroot.sh
+# else if by anaconda/miniconda
+# conda activate <root_env_name>
+ 
+# Get into LCIO surrounding
+cd "@CMAKE_CURRENT_SOURCE_DIR@/../LCIO"
+source setup.sh
+cd -
+
+# Except following variables, one should source thisroot.sh
+export DRUIDDIR="@CMAKE_CURRENT_SOURCE_DIR@"
+export PATH=$PATH:$DRUIDDIR:$LCIO/bin:$DRUIDDIR/bin 
+export @LIBRARY_PATH_VAR@=$LD_LIBRARY_PATH
+

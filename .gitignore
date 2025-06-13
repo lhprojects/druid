@@ -1,0 +1,12 @@
+build/
+*.o
+*.pcm
+*.vscode
+*Dict*
+bin/
+lib/
+LCIO/LCIOConfig.cmake
+LCIO/LCIOConfigVersion.cmake
+LCIO/include/
+LCIO/python/
+.DS_Store
