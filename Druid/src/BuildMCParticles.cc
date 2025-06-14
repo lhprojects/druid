@@ -27,6 +27,7 @@
 #include "EVENT/SimCalorimeterHit.h"
 #include "EVENT/MCParticle.h"
 #include "EVENT/LCEvent.h"
+#include "Options.h"
 
 using namespace lcio;
 using namespace EVENT;
@@ -34,7 +35,7 @@ using namespace std;
 
 extern std::map <string, bool> MCParticleDisplayFlag;
 
-float PTCut = 1.5; //GeV; Tracks with PT less than this threshold will not be displayed;
+//float PTCut = 0.1; //GeV; Tracks with PT less than this threshold will not be displayed;
 
 TEvePathMark * PathMarkEndTrackDecay(TEveVector &/*Vtx*/, TEveVector &End){
 	TEveVector Mark = End;
@@ -52,7 +53,7 @@ bool IsNeutrino(int PID){
 
 TEveElementList* BuildMCParticles( LCEvent *evt )
 {
-
+	std::cout<<"  "<<endl;
 	std::cout<<"  Start to build MC Tracks collection: "<<endl;
 
 	TEveElementList  *MCTracks = new TEveElementList();
@@ -179,7 +180,6 @@ TEveElementList* BuildMCParticles( LCEvent *evt )
 		{
 			int nMCParticle =  col->getNumberOfElements();
 			cout<<"  Number of MCParticle: "<<nMCParticle<<endl;
-			cout<<endl;
 			TEveTrackList * currCompound = 0;
 			float EMCMax = -0.1;
 			int countMother = 0; // used to identify Whizard event & Pythia event...
@@ -242,20 +242,20 @@ TEveElementList* BuildMCParticles( LCEvent *evt )
 				End *= MCPartUnit;
 				KineticE = sqrt(px*px+py*py+pz*pz);
 
-				TEveTrack* track = 0;
+				TEveTrack* track = NULL;
 				ETrType TrType = kAucune;
-				TEveArrow* a1 = 0;
+				TEveArrow* a1 = NULL;
 
 				float Length = Vtx.Distance(End);
 
-				if( PT < PTCut || Length<MCTracksMinLength) skippedMCParticle++;
+				if( PT < gOptions.MCPtCut || Length<MCTracksMinLength) skippedMCParticle++;
 				else displayedMCParticle++;
 
 
 				if( Length<MCTracksMinLength ) continue; // Skip small tracks
 				if( Length<=0) continue; // Protectin against bad parameters = 0      ??
 				//  if( PID>=1000010020 ) continue;  //Mute the heavy hygen nuclea and so on.
-				if( PT < PTCut) continue;
+				if( PT < gOptions.MCPtCut) continue;
 
 				if(charge!=0 && KineticE >= MCTracksLowEThresh){
 
@@ -402,9 +402,9 @@ TEveElementList* BuildMCParticles( LCEvent *evt )
 					track->AddPathMark(*pm3);
 
 
-				} 
+				} // charged
 				else 
-				{
+				{ // neutral
 					/*
 					   propsetNeutral->SetMagFieldObj(new TEveMagFieldConst(0., 0., -3.5));
 					   propsetNeutral->SetName("Track propagator for neutral particles");
@@ -419,7 +419,9 @@ TEveElementList* BuildMCParticles( LCEvent *evt )
 					}else{
 
 						switch( abs(PID) ){
-							case  12:; case  14:; case  16:;    //Neutrinos
+							case  12:   // pass through
+							case  14:   // pass through
+							case  16:   // pass through  //Neutrinos
 									 TrType = kNeutrino;
 									 currCompound = cpdNeutrinos;
 									 break;
@@ -427,6 +429,7 @@ TEveElementList* BuildMCParticles( LCEvent *evt )
 							case 22:    //Gammas
 									 TrType = kGamma;
 									 currCompound = cpdGamma;
+									 std::cout<<"  Displaying Gamma with energy: "<<energy<<std::endl;
 									 break;
 
 							case 2112:
@@ -528,7 +531,7 @@ TEveElementList* BuildMCParticles( LCEvent *evt )
 		}
 	}
 
-	std::cout<<"  With current PTCut "<<PTCut<<" GeV, "<<displayedMCParticle<<" MCparticle has been displayed, and "<<skippedMCParticle<<" particles has been skipped"<<std::endl<<std::endl<<std::endl;
+	std::cout<<"  With current PTCut "<<gOptions.MCPtCut<<" GeV, "<<displayedMCParticle<<" MCparticle has been displayed, and "<<skippedMCParticle<<" particles has been skipped"<<std::endl<<std::endl<<std::endl;
 	return MCTracks;
 
 }

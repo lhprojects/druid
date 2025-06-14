@@ -27,7 +27,7 @@
 #include "TEveBoxSet.h"
 #include "TEveRGBAPalette.h"
 #include "TEveRGBAPaletteOverlay.h"
-
+#include "Options.h"
 
 extern LCReader* lcReader;
 extern LCEvent* evt;
@@ -45,7 +45,6 @@ extern float HitColourFactor;
 extern float HitColourUnitFactor;
 extern int event_id;
 extern int GlobalRandomColorIndex;
-extern float PTCut;
 extern float HitEnergyCut;
 
 // for TEveRGBAPalette powered coloring style
@@ -214,8 +213,8 @@ void EventNavigator::HitTextAttach() {
 }
 
 void EventNavigator::PTCutModify() {
-  PTCut = _PTCutEntry->GetNumber();
-  std::cout << "Change the PTCut for the MCParticle Collection: " << PTCut
+  gOptions.MCPtCut = _PTCutEntry->GetNumber();
+  std::cout << "Change the PTCut for the MCParticle Collection: " << gOptions.MCPtCut
             << std::endl;
   load_collections(evt, LCIO::MCPARTICLE);
   return;

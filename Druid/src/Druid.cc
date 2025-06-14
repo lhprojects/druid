@@ -25,6 +25,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include "Options.h"
 
 using namespace lcio ;
 using namespace std ;
@@ -96,6 +97,7 @@ TString ExtendName(TString inputString){
 
 int main(int argc, char *argv[])
 {
+	gOptions.parse(argc, argv);
 
 	if(argc == 1) 
 	{
@@ -192,6 +194,7 @@ int main(int argc, char *argv[])
 		else
 		{ 
 			std::cout<<"Check your input, the first argument should be lcio file"<<std::endl;
+			std::cout << "But you input: " << lcioFileName << std::endl;
 		}
 
 	}
