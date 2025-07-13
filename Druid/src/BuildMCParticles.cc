@@ -257,6 +257,7 @@ TEveElementList* BuildMCParticles( LCEvent *evt )
 				//  if( PID>=1000010020 ) continue;  //Mute the heavy hygen nuclea and so on.
 				if( PT < gOptions.MCPtCut) continue;
 
+				printf("MCP: charge %d, pdg %d, (%f,%f,%f)\n", int(charge), PID, px, py, pz);
 				if(charge!=0 && KineticE >= MCTracksLowEThresh){
 
 					switch(PID){
@@ -531,7 +532,7 @@ TEveElementList* BuildMCParticles( LCEvent *evt )
 		}
 	}
 
-	std::cout<<"  With current PTCut "<<gOptions.MCPtCut<<" GeV, "<<displayedMCParticle<<" MCparticle has been displayed, and "<<skippedMCParticle<<" particles has been skipped"<<std::endl<<std::endl<<std::endl;
+	std::cout<<"  With current gOptions.MCPtCut "<<gOptions.MCPtCut<<" GeV, "<<displayedMCParticle<<" MCparticle has been displayed, and "<<skippedMCParticle<<" particles has been skipped"<<std::endl<<std::endl<<std::endl;
 	return MCTracks;
 
 }

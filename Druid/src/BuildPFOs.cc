@@ -48,6 +48,48 @@ bool HiddenPFOCluster = 1.0;
 extern int event_id;
 
 
+TVector3 computeVtx(const TrackState* state) {
+	double refX = state->getReferencePoint()[0];
+	double refY = state->getReferencePoint()[1];
+	double refZ = state->getReferencePoint()[2];
+	double phi = state->getPhi();
+	double d0 = state->getD0();
+	float x0 = refX - d0 * sin(phi);
+	float y0 = refY + d0 * cos(phi);
+	float z0 = refZ + z0;
+	return TVector3(x0, y0, z0);
+}
+
+
+TVector3 computeMomentum(const TrackState* state, double Bz = 3.5 /* T */)
+{
+	const double kAlpha = 2.99792458e-4;     
+    if (!state) return TVector3();              // protect against null
+
+    const double omega      = state->getOmega();          // 1/mm
+    if (omega == 0.0) return TVector3();        // pT → ∞ : undefined
+
+    const double pT         = kAlpha * fabs(Bz) / fabs(omega);
+    const double phi        = state->getPhi();
+    const double tanLambda  = state->getTanLambda();
+
+    const double px = pT * std::cos(phi);
+    const double py = pT * std::sin(phi);
+    const double pz = pT * tanLambda;
+
+    return TVector3(px, py, pz);
+}
+
+inline int chargeSign(const TrackState* st, double Bz = 3.5 /* T */)
+{
+    if (!st)                    return 0;        // null-check
+    const double omega = st->getOmega();
+    const int sOmega = (omega > 0) ? +1 : -1;
+    return sOmega;                         // +1 or –1
+}
+
+
+
 TEveElementList* BuildPFOs( LCCollection* col, string name )
 {
 
@@ -101,7 +143,8 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 	double MCTracksMinLength = 0.5; //cm
 	double MCTracksLowEThresh = 0.01;
 
-	enum ERecType { kRecAucune=0, kElectron, kPositron, kMuonP, kMuonN, kPionP, kPionN, kKaonP, kKaonN, kProton, kNeutron, kKlong, kGamma, kIonP, kIonN, kNeutralHad, kLowE, kLowETrack, kRecLast};
+	enum ERecType { kRecAucune=0, kElectron, kPositron, kMuonP, kMuonN, kPionP, kPionN, kKaonP, kKaonN, 
+		kProton, kNeutron, kKlong, kGamma, kIonP, kIonN, kNeutralHad, kLowE, kLowETrack, kSubTrack, kRecLast};
 
 	struct PFODisplay {
 		const char * Name;
@@ -129,7 +172,8 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 		{"Ion-	    ", 58, 4, 9, 75},
 		{"NeutralHad", 5, 2, 2, 35},
 		{"LowE      ", 15, 2, 2, 33},
-		{"LowETrack ", 6,  2, 2, 20}
+		{"LowETrack ", 6,  2, 2, 20},
+		{"SubTrack", 53, 2, 9, 10}
 	};
 
 	int PID, ParentNum, DaughterNum;
@@ -181,6 +225,9 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 	TEveTrackList* LowETrack = new TEveTrackList("LowETrack");	//Reco charged PFO without cluster
 	LowETrack->SetMainColor(PFOParams[kLowETrack].Color);
 
+	TEveTrackList* SubTrack = new TEveTrackList("SubTrack");	//Reco charged PFO without cluster
+	SubTrack->SetMainColor(PFOParams[kSubTrack].Color);
+
 	TEveVector End(0.0, 0.0, 0.0);
 	TEveVector Vtx(0.0, 0.0, 0.0);
 
@@ -196,7 +243,8 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 
 			PID=0; ParentNum=0; DaughterNum=0;
 			charge=0; mass=0; energy=0;
-			px=0; py=0; pz=0; 
+			px=0; py=0; pz=0;                       // particle momentum
+			double trkPxAtVtx = 0, trkPyAtVtx = 0, trkPzAtVtx = 0; // track momentum
 			KineticE = 0; GenRadius = 0; EndRadius = 0;
 
 			Ncluster = part->getClusters().size();
@@ -230,8 +278,9 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 			   }
 			   else 
 			 */
-			if(NTrack>0)
+			if(NTrack==1 || (charge && NTrack>1))
 			{
+				// FIXME: for charge and NTrack>1, first is the parent, is this what we need?
 				Track * a_trk = part->getTracks()[0];
 				NTrackHits = a_trk->getTrackerHits().size();
 				if(NTrackHits>0){ 
@@ -240,12 +289,14 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 				}else{
 					End = part->getMomentum() ;
 					End *= 3000.0/KineticE ;
+					End = Vtx + End;
 				}
 			}
 			else		// reserved for where cluster is dropped
 			{
 				End = part->getMomentum() ;
 				End *= 3000.0/KineticE ;
+				End = Vtx + End;
 			}
 
 			// add the part to display calohits;
@@ -346,7 +397,224 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 				else PID = 22; 
 			}
 
-			if(charge!=0 && KineticE >= MCTracksLowEThresh && Ncluster){
+			printf("PFO %d, PID=%d, Charge=%f, Energy=%f, mom=(%f,%f,%f),"
+					"KineticE=%f, Vtx=(%.3f, %.3f, %.3f), End=(%.3f, %.3f, %.3f)\n",
+			       i, PID, charge, energy, 
+					px, py, pz,
+				   KineticE,
+			       Vtx[0], Vtx[1], Vtx[2],
+			       End[0], End[1], End[2]);
+
+			for(Track *trk : part->getTracks())
+			{
+				if(trk->getTrackStates().size() > 0)
+				{					
+					TrackState const *s = trk->getTrackState(TrackState::AtFirstHit);
+					double ch = chargeSign(s, -3.5);
+					TVector3 trkMom = computeMomentum(s, -3.5);
+					printf("Track %d: charge %f, momentum (%f,%f,%f)\n", i, ch, trkMom.X(), trkMom.Y(), trkMom.Z());
+				}
+
+				TrackStateVec const &trkStateVec = trk->getTrackStates();
+				bool VtxSet = false;
+				bool EndSet = false;
+				double trkPx = px;
+				double trkPy = py;
+				double trkPz = pz;
+				TEveVector trkVtx = Vtx;
+				TEveVector trkEnd = End;
+				double trkCharge = 0;
+
+				printf("Global Vtx %f %f %f\n", Vtx.fX, Vtx.fY, Vtx.fZ);
+				printf("Global End %f %f %f\n", End.fX, End.fY, End.fZ);
+				printf("Global Momentum %f(%f,%f,%f)\n", sqrt(px*px + py*py + pz*pz), 
+						px, py, pz);
+
+				for (TrackState *trkState : trkStateVec)
+				{
+					TVector3 trkMom = computeMomentum(trkState, -3.5);
+					int trkstateCharge = chargeSign(trkState, -3.5);
+					double mom = trkMom.Mag();
+					if (trkState->getLocation() == TrackState::AtFirstHit)
+					{
+						TVector3 v = computeVtx(trkState);
+						trkVtx = TEveVector(v.X(), v.Y(), v.Z());
+						trkVtx = trkVtx * MCPartUnit;
+						trkPx = trkMom.X();
+						trkPy = trkMom.Y();
+						trkPz = trkMom.Z();
+						trkCharge = trkstateCharge;
+						printf("TrackState at first hit: %f %f %f %f\n", trkCharge, trkVtx.fX, trkVtx.fY, trkVtx.fZ);
+						printf("momentum: %f(%f,%f,%f)\n", mom, trkMom.X(), trkMom.Y(), trkMom.Z());
+						VtxSet = true;
+					}
+					else if (trkState->getLocation() == TrackState::AtLastHit)
+					{
+						trkEnd = trkState->getReferencePoint();
+						trkEnd = trkEnd * MCPartUnit;
+						printf("TrackState at last hit: %f %f %f %f\n", trkCharge, trkEnd.fX, trkEnd.fY, trkEnd.fZ);
+						printf("momentum: %f(%f,%f,%f)\n", mom, trkMom.X(), trkMom.Y(), trkMom.Z());
+						EndSet = true;
+					}
+					else if (!VtxSet && trkState->getLocation() == TrackState::AtIP)
+					{
+						TVector3 v = computeVtx(trkState);
+						trkVtx = TEveVector(v.X(), v.Y(), v.Z());
+						trkVtx = trkVtx * MCPartUnit;
+						trkPx = trkMom.X();
+						trkPy = trkMom.Y();
+						trkPz = trkMom.Z();
+						trkCharge = trkstateCharge;
+						printf("TrackState at IP: %f %f %f %f\n", trkCharge, trkVtx.fX, trkVtx.fY, trkVtx.fZ);
+						printf("momentum: %f(%f,%f,%f)\n", mom, trkMom.X(), trkMom.Y(), trkMom.Z());
+						VtxSet = true;
+					}
+					else if (!EndSet && trkState->getLocation() == TrackState::AtCalorimeter)
+					{
+						trkEnd = trkState->getReferencePoint();
+						trkEnd = trkEnd * MCPartUnit;
+						printf("TrackState at Calorimeter: %f %f %f %f\n", trkCharge, trkEnd.fX, trkEnd.fY, trkEnd.fZ);
+						//printf("D0 Z0: %f %f\n", trkState->getD0(), trkState->getZ0());
+						printf("momentum: %f(%f,%f,%f)\n", mom, trkMom.X(), trkMom.Y(), trkMom.Z());
+						EndSet = true;
+					}
+				}
+			}
+
+			if (NTrack >= 1)
+			{
+				TrackVec const &trks = part->getTracks();
+				int trkIdx = 0;
+				for (auto *trk : trks)
+				{
+
+					TrackStateVec const &trkStateVec = trk->getTrackStates();
+					bool VtxSet = false;
+					bool EndSet = false;
+					double trkPx = px;
+					double trkPy = py;
+					double trkPz = pz;
+					TEveVector trkVtx = Vtx;
+					TEveVector trkEnd = End;
+					double trkCharge = 0;
+
+					printf("Global Vtx %f %f %f\n", Vtx.fX, Vtx.fY, Vtx.fZ);
+					printf("Global End %f %f %f\n", End.fX, End.fY, End.fZ);
+					printf("Global Momentum %f(%f,%f,%f)\n", sqrt(px*px + py*py + pz*pz), 
+							px, py, pz);
+
+					for (TrackState *trkState : trkStateVec)
+					{
+						TVector3 trkMom = computeMomentum(trkState, -3.5);
+						int trkstateCharge = chargeSign(trkState, -3.5);
+						TVector3 location = computeVtx(trkState);						
+						double mom = trkMom.Mag();
+						if (trkState->getLocation() == TrackState::AtFirstHit)
+						{
+							trkVtx = TEveVector(location.X(), location.Y(), location.Z());
+							trkVtx = trkVtx * MCPartUnit;
+							trkPx = trkMom.X();
+							trkPy = trkMom.Y();
+							trkPz = trkMom.Z();
+							trkCharge = trkstateCharge;
+							printf("TrackState at first hit: %f %f %f %f\n", trkCharge, trkVtx.fX, trkVtx.fY, trkVtx.fZ);
+							//printf("D0 Z0: %f %f\n", trkState->getD0(), trkState->getZ0());
+							//printf("momentum: %f(%f,%f,%f)\n", mom, trkPx, trkPy, trkPz);
+							VtxSet = true;
+						}
+						else if (trkState->getLocation() == TrackState::AtLastHit)
+						{
+							trkEnd = TEveVector(location.X(), location.Y(), location.Z());
+							trkEnd = trkEnd * MCPartUnit;
+							printf("TrackState at last hit: %f %f %f %f\n", trkCharge, trkEnd.fX, trkEnd.fY, trkEnd.fZ);
+							//printf("D0 Z0: %f %f\n", trkState->getD0(), trkState->getZ0());
+							//printf("momentum: %f(%f,%f,%f)\n", mom, trkPx, trkPy, trkPz);
+							EndSet = true;
+						}
+						else if (!VtxSet && trkState->getLocation() == TrackState::AtIP)
+						{
+							trkVtx = TEveVector(location.X(), location.Y(), location.Z());
+							trkVtx = trkVtx * MCPartUnit;
+							trkPx = trkMom.X();
+							trkPy = trkMom.Y();
+							trkPz = trkMom.Z();
+							trkCharge = trkstateCharge;
+							printf("TrackState at IP: %f %f %f %f\n", trkCharge, trkVtx.fX, trkVtx.fY, trkVtx.fZ);
+							//printf("D0 Z0: %f %f\n", trkState->getD0(), trkState->getZ0());
+							//printf("momentum: %f(%f,%f,%f)\n", mom, trkPx, trkPy, trkPz);
+							VtxSet = true;
+						}
+						else if (!EndSet && trkState->getLocation() == TrackState::AtCalorimeter)
+						{
+							trkEnd = TEveVector(location.X(), location.Y(), location.Z());
+							trkEnd = trkEnd * MCPartUnit;
+
+							printf("TrackState at Calorimeter: %f %f %f %f\n", trkCharge, trkEnd.fX, trkEnd.fY, trkEnd.fZ);
+							//printf("D0 Z0: %f %f\n", trkState->getD0(), trkState->getZ0());
+							//printf("momentum: %f(%f,%f,%f)\n", mom, trkPx, trkPy, trkPz);
+							EndSet = true;
+						}
+					}
+
+					printf("---------------------\n");
+					printf("Track %d: trkCharge %f, Vtx %f %f %f, End %f %f %f, Momentum %f(%f,%f,%f)\n",
+							trkIdx, trkCharge, trkVtx.fX, trkVtx.fY, trkVtx.fZ,
+							trkEnd.fX, trkEnd.fY, trkEnd.fZ,
+							sqrt(trkPx*trkPx + trkPy*trkPy + trkPz*trkPz),
+							trkPx, trkPy, trkPz);
+
+					if (charge && trkIdx == 0)
+					{  // skip the first track if it is charged, because it is the PFO itself
+						Vtx = trkVtx;
+						End = trkEnd;
+						trkPxAtVtx = trkPx;
+						trkPyAtVtx = trkPy;
+						trkPzAtVtx = trkPz;
+						++trkIdx;
+						//continue;
+					}
+
+					TEveRecTrack* ChargedTrack = new TEveRecTrack();
+					ChargedTrack->fV.Set(trkVtx);
+					ChargedTrack->fP.Set(trkPx, trkPy, trkPz);
+					ChargedTrack->fSign = int(trkCharge);
+
+					track = new TEveTrack(ChargedTrack, propsetCharged);
+
+					TEvePathMark* pm = new TEvePathMark(TEvePathMark::kDecay);
+					pm->fV.Set(trkEnd);
+					//track->AddPathMark( *pm );
+
+					TrType = kSubTrack;
+					track->SetName(Form("Sub Track %d:%d, Energy=%f\n", i, trkIdx, energy));    // i = tracknum
+					track->SetLineWidth(PFOParams[TrType].Width);
+					track->SetLineColor(PFOParams[TrType].Color);
+					track->SetLineStyle(PFOParams[TrType].Style);
+					track->SetSmooth(kTRUE);
+					track->SetTitle(Form("Sub Track: %s, Energy=%f\n\n"
+								"EventNr=%d, Track No.=%d\n"
+								"Charge=%f, PID=%d\n"
+								"Energy=%f\n"
+								"Vtx = (%.3f, %.3f, %.3f) cm\n"
+								"End = (%.3f, %.3f, %.3f) cm\n"
+								"Momentum = (%.3f, %.3f, %.3f)",
+								name.c_str(), energy, event_id, i, (double)trkCharge, 
+								PID, energy,
+								10*trkVtx[0], 10*trkVtx[1], 10*trkVtx[2],
+								10*trkEnd[0], 10*trkEnd[1], 10*trkEnd[2],
+								trkPx, trkPy, trkPz));
+
+					SubTrack->AddElement(track);
+					SubTrack->IncDenyDestroy();
+					SubTrack->MakeTracks();
+					++trkIdx;
+
+				}
+
+			}
+
+
+			if(charge!=0 && KineticE >= MCTracksLowEThresh){
 
 				switch(PID){
 					case 11:
@@ -402,9 +670,10 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 
 				}
 
+
 				TEveRecTrack* ChargedTrack = new TEveRecTrack();
 				ChargedTrack->fV.Set(Vtx);
-				ChargedTrack->fP.Set(px, py, pz);
+				ChargedTrack->fP.Set(trkPxAtVtx, trkPyAtVtx, trkPzAtVtx);
 				ChargedTrack->fSign = int(charge);
 
 				track = new TEveTrack(ChargedTrack, propsetCharged);
@@ -425,7 +694,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 					TrType = kLowE;
 					currCompound = cpdLowE;
 				}
-				else if( Ncluster == 0)
+				else if( Ncluster == 0 && false)
 				{
 					TrType = kLowETrack;
 					currCompound = LowETrack; 
@@ -515,6 +784,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 		RecoTracks->AddElement(cpdIonP);
 		RecoTracks->AddElement(cpdIonN);
 		RecoTracks->AddElement(RecoClus);
+		RecoTracks->AddElement(SubTrack);
 
 		return RecoTracks;
 
