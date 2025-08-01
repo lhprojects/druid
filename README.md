@@ -21,6 +21,11 @@ From heads/master@tags/v6-32-04
 
 LCIO from `source /cvmfs/sw.hsf.org/key4hep/setup.sh -r 2025-01-28` is tested.
 
+If LCIO can not be found in the env, we will download and build automatically.
+
+**Note:**
+If you met issue about `fdopen`, try commenting line `define fdopen(fd,mode) NULL` in 
+`build/_deps/lcio/src/LCIO_ext-build/_deps/sio_extern-src/zlib/zutil.h`.
 
 ## Build and Install Druid
 
@@ -37,7 +42,7 @@ LCIO from `source /cvmfs/sw.hsf.org/key4hep/setup.sh -r 2025-01-28` is tested.
    
 ### Install Druid with GNUMakefile
 
-⚠️ **Note:** This is outdated.
+**Note:** This is outdated.
 
    before that, activate your conda environment of root, or source `thisroot.sh` in `<root-location>/bin`.
    
