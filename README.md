@@ -44,9 +44,7 @@ Normally, you don't have to do anything, if `root` command works.
    cmake ..
    make && make install
    ```
-
-   CMAKE will detect the platform, search the path of dependencies, and generate setup.sh file automatically.
-   After compiling, the setup.sh of Druid and executable file will be generated in <path-druid>/bin.
+   Executable file will be generated in `<path-druid>/bin/Druid`.
    
    
 # Usage
