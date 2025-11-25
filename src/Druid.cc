@@ -26,6 +26,8 @@
 #include <fstream>
 #include <sstream>
 #include "Options.h"
+#include "lcio.h"
+#include "IO/LCReader.h"
 
 using namespace lcio ;
 using namespace std ;
@@ -33,11 +35,9 @@ using namespace std ;
 #include "TGeoManager.h"
 extern TGeoManager * gGeoManager;
 
-int runNumber = 0;
-int event_id = 0;
+DisplayState gDisplayState;
 
-#include "lcio.h"
-#include "IO/LCReader.h"
+
 using namespace lcio ;
 
 LCReader* lcReader;
@@ -77,10 +77,12 @@ void SteerSetup(char *steeringFileName)
 			gearFileName = parValue;
 		if(parName == "LCIOFILE")
 			lcioFileName = parValue;
-		if(parName == "RUNNUMBER")
-			runNumber = atoi (parValue.c_str());
-		if(parName == "EVTNUMBER")
-			event_id = atoi (parValue.c_str());
+        if (parName == "RUNNUMBER")
+        {
+            gDisplayState.setRunNumber(atoi(parValue.c_str()));
+        }
+        if (parName == "EVTNUMBER")
+            gDisplayState.setEventNumber(atoi (parValue.c_str()));            
 		if(parName == "DETECTOR")
 			detectortype = parValue;
 		if(parName == "GDMLROOTFILE")
@@ -164,8 +166,6 @@ int main(int argc, char *argv[])
 		{
 			std::cout<<"Display the first event in LCIO file without geometry!"<<std::endl;
 			lcioFileName = argv[1];   flagslcio = kTRUE; 
-			runNumber = -1;
-			event_id = 1;
 		}
 
 	}
@@ -176,18 +176,15 @@ int main(int argc, char *argv[])
 		if(ExtendName(lciofile) == "slcio")
 		{
 			flagslcio = kTRUE; 
-			runNumber = -1;
 
 			TString sa(argv[2]);
 			if(ExtendName(sa) == "root") 
 			{gdmlrootfileName = argv[2];
 				flaggeoroot = kTRUE;
-				event_id = 1;
 			}else if(ExtendName(sa) == "gearxml"){
 				gearFileName = argv[2];   flaggeoxml = kTRUE;
-				event_id = 1;
 			}else{
-				event_id = atoi( argv[2] );
+				gDisplayState.setEventNumber(atoi( argv[2] ));
 				flagEventNumber = kTRUE;
 			}
 		}
@@ -214,9 +211,8 @@ int main(int argc, char *argv[])
 			gearFileName = argv[2];   
 			flaggeoxml = kTRUE;
 		} 
-		event_id = atoi( argv[3] );   
+		gDisplayState.setEventNumber(atoi( argv[3] ));   
 		flagEventNumber = kTRUE;
-		runNumber = -1;
 	}
 	else if(argc == 5)
 	{
@@ -233,9 +229,9 @@ int main(int argc, char *argv[])
 			gearFileName = argv[2];   
 			flaggeoxml = kTRUE;
 		}	
-		runNumber = atoi( argv[3] );    
+		gDisplayState.setRunNumber( atoi( argv[3] ) );   
 		flagRunNumber = kTRUE; 
-		event_id = atoi( argv[4] );     
+		gDisplayState.setEventNumber(atoi( argv[4] ));     
 		flagEventNumber = kTRUE; 
 	}
 
@@ -247,7 +243,8 @@ int main(int argc, char *argv[])
 	{
 		lcReader = LCFactory::getInstance()->createLCReader(LCReader::directAccess) ;
 		lcReader->open( lcioFileName.c_str() );
-		load_event(event_id);
+		load_event(gDisplayState.getEventNumber());
+        gGUIManager._EventNumberEntry->SetNumber(gDisplayState.getEventNumber());
 	}
 
 	if(flaggeoroot)

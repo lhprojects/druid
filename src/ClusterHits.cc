@@ -30,6 +30,7 @@
 #include "geometry.h"
 #include "point.h"
 #include "segment3.h"
+#include "GlobalDefs.hh"
 
 using namespace lcio;
 using namespace std;
@@ -40,7 +41,6 @@ int ClusterHitColourType = 1;
 extern int flagdetectortype;
 const float HCALBarrelLengthILD = 309.3;
 const float HCALBarrelLengthSID = 320.0; 
-extern int event_id;
 extern TEveBox* BoxPhi( TVector3 &HitPos, TVector3 &Scale, int Type, int SegOrStaveNumber, float HitEnergy );
 extern int GlobalRandomColorIndex;
 extern bool Flag_AttachTextToHit;
@@ -212,7 +212,7 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
 								"PFOPDG = %d, PFOCharge = %f, PFOEnergy = %f\n"
 								"Cluster Energy = %f GeV\n"
 								"Cluster PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n", 
-								name.c_str(), event_id, HitEn*1000000, 10*HitPosition[0], 10*HitPosition[1], 10*HitPosition[2],
+								name.c_str(), gDisplayState.getEventNumber(), HitEn*1000000, 10*HitPosition[0], 10*HitPosition[1], 10*HitPosition[2],
 								0, 0., 0., ClusterEnergy, cluPos[0], cluPos[1], cluPos[2]));
 				}
 				q->SetPickable(kTRUE);

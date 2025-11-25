@@ -20,12 +20,13 @@
 #include "TSystem.h"
 #include "TEveManager.h"
 #include "TEvePointSet.h"
+#include "GlobalDefs.hh"
 
 using namespace lcio;
 using namespace std;
 
+
 extern int GlobalRandomColorIndex;
-extern int event_id;
 
 TEveElementList* Vertex( LCCollection* col, string name)
 {
@@ -64,7 +65,7 @@ TEveElementList* Vertex( LCCollection* col, string name)
 					"Vertex Collection = %s, Vertex ID = %d\n"
 					"(X, Y, Z) = (%.3f, %.3f, %.3f)\n"
 					"Chi2 = %f",
-					event_id, TT.c_str(), i, HitX, HitY, HitZ, chi2));
+					gDisplayState.getEventNumber(), TT.c_str(), i, HitX, HitY, HitZ, chi2));
 
 		qv->SetMarkerColor(((i%2)*50+15*i+GlobalRandomColorIndex*31)%105);
 

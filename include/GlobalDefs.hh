@@ -4,6 +4,48 @@
 #include <string>
 #include "TEveVector.h"
 #include "TEvePathMark.h"
+#include "TGNumberEntry.h"
+
+
+struct GUIManager
+{
+    TGNumberEntry *_EventNumberEntry = nullptr;
+};
+extern GUIManager gGUIManager;
+
+struct DisplayState
+{
+    int eventNumber = -1;
+    bool eventNumberSet = false;
+    int runNumber = -1;
+    bool runNumberSet = false;
+
+    void setRunNumber( int rn ) {
+        runNumber = rn;
+        runNumberSet = true;
+    }
+    bool isRunNumberSet() const {
+        return runNumberSet;
+    }
+    int getRunNumber() const {        
+        return runNumber;
+    }
+
+    void setEventNumber( int en ) {
+        eventNumber = en;
+        eventNumberSet = true;
+    }
+    bool isEventNumberSet() const {
+        return eventNumberSet;
+    }
+    int getEventNumber() const {
+        return eventNumber;
+    }
+};
+
+
+extern DisplayState gDisplayState;
+
 
 //class TEveVector;
 //class TEvePathMark;  

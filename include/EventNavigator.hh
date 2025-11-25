@@ -1,5 +1,6 @@
 #ifndef EVENT_NAV_
 #define EVENT_NAV_
+
 class EventNavigator
 {
 	public:

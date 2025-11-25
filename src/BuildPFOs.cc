@@ -22,6 +22,7 @@
 #include "TDatabasePDG.h"
 #include "TEveBox.h"
 #include "TEveVSDStructs.h"
+#include "GlobalDefs.hh"
 
 #include "lcio.h"
 #include "IMPL/LCTOOLS.h"
@@ -45,7 +46,6 @@ extern float ClusterHitSize;
 int PFOHitColourType = 0;
 float PFOHitSize = 1.0;
 bool HiddenPFOCluster = 1.0;
-extern int event_id;
 
 
 TVector3 computeVtx(const TrackState* state) {
@@ -598,7 +598,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 								"Vtx = (%.3f, %.3f, %.3f) cm\n"
 								"End = (%.3f, %.3f, %.3f) cm\n"
 								"Momentum = (%.3f, %.3f, %.3f)",
-								name.c_str(), energy, event_id, i, (double)trkCharge, 
+								name.c_str(), energy, gDisplayState.getEventNumber(), i, (double)trkCharge, 
 								PID, energy,
 								10*trkVtx[0], 10*trkVtx[1], 10*trkVtx[2],
 								10*trkEnd[0], 10*trkEnd[1], 10*trkEnd[2],
@@ -759,7 +759,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 							"Vtx position= (%.3f, %.3f, %.3f)\n"
 							"Cluster pos = (%.3f, %.3f, %.3f)\n"
 							"3-momentum = (%.3f, %.3f, %.3f)",
-							name.c_str(), event_id, i, charge, PID, energy,
+							name.c_str(), gDisplayState.getEventNumber(), i, charge, PID, energy,
 							10*Vtx[0], 10*Vtx[1], 10*Vtx[2], 10*End[0], 10*End[1], 10*End[2], px, py, pz));
 
 				currCompound->AddElement(track);

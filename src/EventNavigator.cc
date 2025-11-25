@@ -31,7 +31,6 @@
 
 extern LCReader* lcReader;
 extern LCEvent* evt;
-extern int runNumber;
 extern int HitColourType;
 extern int PFOHitColourType;
 extern int ClusterHitColourType;
@@ -43,7 +42,6 @@ extern float cellfactor;
 extern double cellEnergyThresh;
 extern float HitColourFactor;
 extern float HitColourUnitFactor;
-extern int event_id;
 extern int GlobalRandomColorIndex;
 extern float HitEnergyCut;
 
@@ -55,13 +53,14 @@ extern bool cal_shell_shown;
 extern float HitColourOverflowLimit;
 extern float HitColourUnderflowLimit;
 
+extern GUIManager gGUIManager;
+
 extern TGNumberEntry* _cellSizeEntry;
 extern TGNumberEntry* _SimucellSizeEntry;
 extern TGNumberEntry* _PFOcellSizeEntry;
 extern TGNumberEntry* _ClustercellSizeEntry;
 extern TGNumberEntry* _cellEnergyThrEntry;
 extern TGNumberEntry* _cellEnergyScaleEntry;
-extern TGNumberEntry* _EventNumberEntry;
 extern TGNumberEntry* _PTCutEntry;
 extern TGNumberEntry* _CellECutEntry;
 // Yuzhi CHE: RGBAPalette
@@ -78,26 +77,34 @@ extern TEveManager * gEve;
 
 int EventNumberToDisplay;
 
-void EventNavigator::Fwd() {
-  if (event_id < 1000000) {
-    ++event_id;
-    while (lcReader->readEvent(runNumber, event_id) == nullptr) {
-      ++event_id;
+void EventNavigator::Fwd()
+{
+    int eventNumber = gDisplayState.getEventNumber();
+    if (eventNumber < 1000000)
+    {
+        ++eventNumber;
+        while (lcReader->readEvent(gDisplayState.getRunNumber(), eventNumber) == nullptr)
+        {
+            ++eventNumber;
+        }
+        load_event(eventNumber);
     }
-    load_event(event_id);
-  } else {
-    printf("Already at last event.\n");
-  }
+    else
+    {
+        printf("Already at last event.\n");
+    }
 }
 
 void EventNavigator::Bck() {
-  if (event_id > 0) {
-    --event_id;
-    while (lcReader->readEvent(runNumber, event_id) == nullptr &&
-           event_id > 0) {
-      --event_id;
+    int eventNumber = gDisplayState.getEventNumber();
+  if (eventNumber > 0) {
+    --eventNumber;
+    while (lcReader->readEvent(gDisplayState.getRunNumber(), eventNumber) == nullptr &&
+           eventNumber > 0)
+    {
+        --eventNumber;
     }
-    load_event(event_id);
+    load_event(eventNumber);
   } else {
     printf("Already at first event.\n");
   }
@@ -133,7 +140,7 @@ void EventNavigator::setCollection() {
 void EventNavigator::MultiViewSwitch() {
   std::cout << "about to be added!" << std::endl;
   FlagMultiView = !FlagMultiView;
-  load_event(event_id);
+  load_event(gDisplayState.getEventNumber());
 }
 
 void EventNavigator::setCellColour(int ds) {
@@ -263,10 +270,10 @@ void EventNavigator::ClusterHitSizeModify() {
 }
 
 void EventNavigator::GotoEvent() {
-  EventNumberToDisplay = int(_EventNumberEntry->GetNumber());
+  EventNumberToDisplay = int(gGUIManager._EventNumberEntry->GetNumber());
   std::cout << "  Let's go to display " << EventNumberToDisplay << "th Event!"
             << std::endl;
-  event_id = EventNumberToDisplay;
+  gDisplayState.setEventNumber(EventNumberToDisplay);
   load_event(EventNumberToDisplay);
   return;
 }

@@ -49,13 +49,11 @@ LCEvent* evt;
 LCEvent* lastevt;
 // TEveText *t;
 
-extern int event_id;
 extern TEveManager* gEve;
 bool extern FlagMultiView;
 extern MultiView* gMultiView;
 // MultiView * gMultiView;
 
-extern int runNumber;
 extern LCReader* lcReader;
 extern int GlobalRandomColorIndex;
 extern int flagdetectortype;
@@ -129,70 +127,94 @@ void load_event(int EventNum) {
        << endl
        << endl;
   ;
-  cout << "    Start to display event " << EventNum << endl;
-  cout << "    Last event " << last_event_id << endl;
-  cout << "	 Event Flag " << flagslcio << endl;
+  cout << "Start to display event " << EventNum << endl;
+  cout << "LCIO Flag " << flagslcio << endl;
+
+  std::cout << "Run number : " << gDisplayState.getRunNumber() << 
+                ", Event number : " << EventNum << std::endl;
 
   try {
-    if (runNumber == -1) {
-      lcReader->skipNEvents(EventNum);
-      evt = lcReader->readNextEvent();
-      runNumber = evt->getRunNumber();  // This trick only works for the LCIO
-                                        // file with one single run number
-      if (evt) event_id = evt->getEventNumber();
-    } else {
-      evt = lcReader->readEvent(runNumber, EventNum);
-    }
 
-    if (!evt) {
-      cout << "    Event Not Found!" << endl;
-    } else {
-      event_id = evt->getEventNumber();
+      if (!gDisplayState.isRunNumberSet())
+      {
+          EVENT::LCEvent *firstEvent = lcReader->readNextEvent();
+          firstEvent = lcReader->readNextEvent(); // I dont know why need read twice
 
-      string k =
-          evt->getDetectorName();  // Initial Detector Type from slcio header;
-      if (k == "ILD_00" || k == "ILD_o1_v05")  // ILD00_AHCAL
-      {
-        flagdetectortype = 0;
-      } else if (k == "ILD_00Dhcal" || k == "ILD_01pre00" ||
-                 k == "ILD_o2_v05" || k == "ILD_o2_v06" || k == "CEPC_v0" ||
-                 k == "CEPC_v1")  // ILD00_DHCAL
-      {
-        flagdetectortype = 1;
-      } else if (k.find("TB") != string::npos) {
-        flagdetectortype = 2;  // Simulated test beam events; currently only
-                               // considering about AHCAL Calibrations
-      } else if (k == "sidloi3")  // SID_LOI
-      {
-        flagdetectortype = 3;
-      } else if (k == "clic_sid_cdr_b")  // SID_CLIC
-      {
-        flagdetectortype = 5;
-      } else {
-        flagdetectortype =
-            10;  // Risky... currently used as for the real data of CALICE TB
+          int runNumber = firstEvent->getRunNumber();
+          gDisplayState.setRunNumber(runNumber);
+          std::cout << "    Reset Run Number: " << gDisplayState.getRunNumber() << std::endl;
+          if (!gDisplayState.isEventNumberSet())
+          {
+              gDisplayState.setEventNumber(firstEvent->getEventNumber());
+              EventNum = firstEvent->getEventNumber();
+              std::cout << "    Reset Event Number: " << gDisplayState.getEventNumber() << std::endl;
+          }
       }
-      // As initial Value = -1, thus = 4 means has data file.
 
-      cout << "    Event Located at : " << evt << endl;
-      cout << endl
-           << "****************************************************************"
-              "***************"
-           << endl
-           << endl;
-      cout << "    Event Statistics: " << endl << endl;
+      evt = nullptr;
+      evt = lcReader->readEvent(gDisplayState.getRunNumber(), EventNum);
 
-      load_collections(evt, "");
+      if (!evt)
+      {
+          cout << "    Event Not Found!" << endl;
+      }
+      else
+      {
+          gDisplayState.setEventNumber(evt->getEventNumber());
+          std::cout << "    Actual Event Number: " << gDisplayState.getEventNumber() << std::endl;
 
-      last_event_id = EventNum;
-      last_event_id = event_id;
+          string k =
+              evt->getDetectorName();             // Initial Detector Type from slcio header;
+          if (k == "ILD_00" || k == "ILD_o1_v05") // ILD00_AHCAL
+          {
+              flagdetectortype = 0;
+          }
+          else if (k == "ILD_00Dhcal" || k == "ILD_01pre00" ||
+                   k == "ILD_o2_v05" || k == "ILD_o2_v06" || k == "CEPC_v0" ||
+                   k == "CEPC_v1") // ILD00_DHCAL
+          {
+              flagdetectortype = 1;
+          }
+          else if (k.find("TB") != string::npos)
+          {
+              flagdetectortype = 2; // Simulated test beam events; currently only
+                                    // considering about AHCAL Calibrations
+          }
+          else if (k == "sidloi3") // SID_LOI
+          {
+              flagdetectortype = 3;
+          }
+          else if (k == "clic_sid_cdr_b") // SID_CLIC
+          {
+              flagdetectortype = 5;
+          }
+          else
+          {
+              flagdetectortype =
+                  10; // Risky... currently used as for the real data of CALICE TB
+          }
+          // As initial Value = -1, thus = 4 means has data file.
 
-      cout << "****************************************************************"
-              "*********************"
-           << endl;
-      cout << "   Display of event " << event_id << " finished... " << endl
-           << endl;
-    }
+          cout << "    Event Located at : " << evt << endl;
+          cout << endl
+               << "****************************************************************"
+                  "***************"
+               << endl
+               << endl;
+          cout << "    Event Statistics: " << endl
+               << endl;
+
+          load_collections(evt, "");
+
+          last_event_id = EventNum;
+          last_event_id = gDisplayState.getEventNumber();
+
+          cout << "****************************************************************"
+                  "*********************"
+               << endl;
+          cout << "   Display of event " << gDisplayState.getEventNumber() << " finished... " << endl
+               << endl;
+      }
 
     // 3D Annotations...
 
@@ -207,7 +229,7 @@ void load_event(int EventNum) {
       ann->SetAllowClose(0);
       ann->SetTextSize(0.03);
       ann->SetText(
-          Form("DRUID, RunNum = %d, EventNum = %d", runNumber, event_id));
+          Form("DRUID, RunNum = %d, EventNum = %d", gDisplayState.getRunNumber(), gDisplayState.getEventNumber()));
     }
 
     if (MarkerTime == 0) {

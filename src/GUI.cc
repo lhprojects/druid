@@ -33,8 +33,9 @@
 extern TEveManager * gEve;
 extern TSystem * gSystem;
 
+GUIManager gGUIManager;
+
 TGNumberEntry *_cellEnergyThrEntry;
-TGNumberEntry *_EventNumberEntry;
 TGNumberEntry *_cellSizeEntry;
 TGNumberEntry *_SimucellSizeEntry;
 TGNumberEntry *_PTCutEntry;
@@ -81,16 +82,16 @@ void make_gui()
 
 		TGLabel *EventNrLabel = new TGLabel(EventNrFrame, " Go to \n  Evt" );
 
-		_EventNumberEntry = new TGNumberEntry(EventNrFrame, 0, 5, -1,
+		gGUIManager._EventNumberEntry = new TGNumberEntry(EventNrFrame, 0, 5, -1,
 				TGNumberFormat::kNESInteger,
 				TGNumberFormat::kNEAAnyNumber,
 				TGNumberFormat::kNELLimitMin,
 				0, 100);
 
 		EventNrFrame->AddFrame(EventNrLabel);
-		EventNrFrame->AddFrame(_EventNumberEntry);
+		EventNrFrame->AddFrame(gGUIManager._EventNumberEntry);
 
-		_EventNumberEntry->Connect("ValueSet(Long_t)", "EventNavigator", fh, "GotoEvent()");
+		gGUIManager._EventNumberEntry->Connect("ValueSet(Long_t)", "EventNavigator", fh, "GotoEvent()");
 
 		frmEvent->AddFrame(EventNrFrame);
 		frmMain->AddFrame(frmEvent);

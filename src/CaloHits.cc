@@ -51,7 +51,6 @@ float HitEnergyCut = 0.2;  // Mips
 bool HiddenLowESimCell = kTRUE;
 
 extern int flagdetectortype;
-extern int event_id;
 extern std::map<float, int>
     randomColor;  // used to give an random color to each MCParticle
 extern std::map<MCParticle*, int>
@@ -773,7 +772,7 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
               "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm, StaveNum = %d, "
               "LayerNum = %d, IndexI = %d, IndexJ = %d, Originindex = %d, "
               "HitTime = %.3fns",
-              name.c_str(), event_id, SubDCollection.c_str(), HitEn * 1000000,
+              name.c_str(), gDisplayState.getEventNumber(), SubDCollection.c_str(), HitEn * 1000000,
               Mipcount, cellEnergyThresh * 1000000, MCPID, MCenergy, MotherPID,
               MotherEnergy, 10 * HitX, 10 * HitY, 10 * HitZ, StaveNum, LayerNum,
               IndexI, IndexJ, Originindex, MCContTime));
@@ -795,7 +794,7 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
                    "Channel)=(%d,%d,%d) \n"
                    "Hit Energy = %.3e GeV ~ %.3e Mip , StaveNum = %d\n"
                    "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm",
-                   name.c_str(), event_id, SubDCollection.c_str(), LayerNum,
+                   name.c_str(), gDisplayState.getEventNumber(), SubDCollection.c_str(), LayerNum,
                    IndexI, IndexJ, HitEn, Mipcount, StaveNum, 10 * HitX,
                    10 * HitY, 10 * HitZ));
         }
