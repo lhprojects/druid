@@ -36,6 +36,7 @@
 #include "TEveTextGL.h"
 #include "TEveTrans.h"
 #include "lcio.h"
+#include "Options.h"
 
 extern TEveCompound* allmarkers(int markercolorindex);
 TEveCompound* marks = 0;
@@ -409,6 +410,14 @@ void load_collections(LCEvent* evt, string coltype) {
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::CALORIMETERHIT) {
+          if (ends_with_any(*name, gOptions.coll_caloHit_filterOutSuffixes))
+          {
+              std::cout << "  Collection <" << *name
+                   << " filter out" << endl
+                   << endl;
+              continue;
+          }
+
         TEveElementList* temp = CaloHits(col, *name);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
