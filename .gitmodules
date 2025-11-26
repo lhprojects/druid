@@ -1,0 +1,3 @@
+[submodule "thirdparty/MLPFA"]
+	path = thirdparty/MLPFA
+	url = git@gitlab.in2p3.fr:calo5d/MLPFA.git
