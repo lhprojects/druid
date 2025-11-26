@@ -17,6 +17,14 @@ bool ends_with_any(const std::string &value, const std::vector<std::string> &end
     return false;
 }
 
+bool equals_any(const std::string &value, const std::vector<std::string> &candidates) {
+    for (const auto &candidate : candidates) {
+        if (value == candidate) {
+            return true;
+        }
+    }
+    return false;
+}
 
 void printVersion() {
     std::cout << "Druid version 1.0.0\n";
@@ -96,6 +104,10 @@ bool add_string(int argc, char** argv, int &index, char const *arg, std::vector<
     }
 }
 
+Options::Options() 
+{
+}
+
 void Options::parse(int &argc, char** &argv) {
     static std::vector<char *> argv_;
 
@@ -109,7 +121,9 @@ void Options::parse(int &argc, char** &argv) {
         if(read_double(argc, argv, i, "-MCPtCut", MCPtCut)) {
         } else if (read_bool(argc, argv, i, "-h", printHelp)) {
         } else if (read_bool(argc, argv, i, "-v", printVersion)) {
-        } else if(add_string(argc, argv, i, "-coll.caloHit.filterOutSuffix", coll_caloHit_filterOutSuffixes)) {
+        } else if(add_string(argc, argv, i, "-coll.caloHit.filterOutSuffix", coll_caloHit_filterOutSuffixes))  {
+        } else if(add_string(argc, argv, i, "-coll.MCP.add", coll_MCP_collections)) 
+        {
         } else {
             if(argv[i][0] == '-') {
                 std::cerr << "Error: Unknown option " << argv[i] << "\n";
@@ -129,6 +143,12 @@ void Options::parse(int &argc, char** &argv) {
     if(printVersion) {
         ::printVersion();
     }
+
+    if(coll_MCP_collections.size() == 0) {
+        coll_MCP_collections.push_back("MCParticle");
+        coll_MCP_collections.push_back("MCParticles");
+    }
+
 
     argc = argv_.size();
     argv = argv_.data();

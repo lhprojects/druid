@@ -51,7 +51,7 @@ bool IsNeutrino(int PID){
 }
 
 
-TEveElementList* BuildMCParticles( LCEvent *evt )
+TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const &mcpartcollnames)
 {
 	std::cout<<"  "<<endl;
 	std::cout<<"  Start to build MC Tracks collection: "<<endl;
@@ -114,8 +114,6 @@ TEveElementList* BuildMCParticles( LCEvent *evt )
 	};
 
 
-	std::string MCTrackName;
-	MCTrackName="MCParticle";
 	int PID, ParentNum, DaughterNum, EventNr, MotherPID, OriginPID;
 	int displayedMCParticle = 0;
 	int skippedMCParticle = 0;
@@ -169,14 +167,11 @@ TEveElementList* BuildMCParticles( LCEvent *evt )
 		pdgDB->AddParticle("Deuteron","Deuteron",2+8.071e-3,kTRUE,0,1,"Ion",ionCode);
 	}
 
-	std::vector<std::string>::const_iterator name;
 
-	const std::vector< std::string >* strVec = evt->getCollectionNames() ;
-
-	for( name = strVec->begin() ; name != strVec->end() ; name++){
-		LCCollection* col = evt->getCollection( *name ) ;
+	for(std::string const &collName : mcpartcollnames){
+		LCCollection* col = evt->getCollection( collName ) ;
 		EventNr = evt->getEventNumber();
-		if(*name == MCTrackName)
+		if(true)
 		{
 			int nMCParticle =  col->getNumberOfElements();
 			cout<<"  Number of MCParticle: "<<nMCParticle<<endl;

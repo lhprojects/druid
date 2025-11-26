@@ -5,11 +5,14 @@
 #include "TEveVector.h"
 #include "TEvePathMark.h"
 #include "TGNumberEntry.h"
+#include "TEveCompound.h"
+#include "TEveElement.h"
 
 
 struct GUIManager
 {
     TGNumberEntry *_EventNumberEntry = nullptr;
+    TEveElementList* _MCPList = nullptr;
 };
 extern GUIManager gGUIManager;
 
@@ -81,7 +84,7 @@ TEveElementList* TrackerHits( LCCollection* col, std::string hh);
 TEveElementList* TrackAssignedHits( LCCollection* col, std::string hh );
 TEveElementList* ClusterHits( LCCollection* col, std::string hh);
 TEveElementList* Vertex(LCCollection* col, std::string hh);
-TEveElementList* BuildMCParticles( LCEvent* evt );
+TEveElementList* BuildMCParticles( LCEvent* evt, std::vector<std::string> const &mcpartcollnames);
 TEveElementList* BuildPFOs( LCCollection* col, std::string hh);
 TEveCompound* ConnectTrees( LCCollection* col, std::string hh );
 TEveCompound* RecoJets( LCCollection* col, std::string name);

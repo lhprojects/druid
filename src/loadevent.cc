@@ -61,7 +61,6 @@ extern int flagdetectortype;
 extern bool flagslcio;
 extern bool DefaultCollectionFlag;
 
-TEveElementList* pMCParticle = 0;
 
 std::map<float, int>
     randomColor;  // used to give an random color to each MCParticle
@@ -280,9 +279,10 @@ void load_collections(LCEvent* evt, string coltype) {
     std::map<string, int> DisplayFlag;
     std::map<string, int> CollectionScan;
 
-    const std::vector<std::string>* strVec = evt->getCollectionNames();
+    const std::vector<std::string> *strVec_ = evt->getCollectionNames();
+    std::vector<std::string> collNames = *strVec_;
+    std::sort(collNames.begin(), collNames.end());
 
-    std::vector<std::string>::const_iterator name;
 
     if (coltype == "") {
       for (std::map<string, TEveElementList*>::iterator AA =
@@ -292,8 +292,8 @@ void load_collections(LCEvent* evt, string coltype) {
       }
     }
 
-    for (name = strVec->begin(); name != strVec->end(); name++) {
-      LCCollection* col = evt->getCollection(*name);
+    for (std::string const &collName : collNames) {
+      LCCollection* col = evt->getCollection(collName);
       std::string ct = col->getTypeName();
       if (std::find(ignoredTypes.begin(), ignoredTypes.end(), ct) !=
           ignoredTypes.end())
@@ -347,15 +347,54 @@ void load_collections(LCEvent* evt, string coltype) {
        gMultiView->DestroyEventRhoZ();
        */
 
-    for (name = strVec->begin(); name != strVec->end(); name++) {
-      LCCollection* col = evt->getCollection(*name);
+    std::vector<std::string> MCPartCollNames;
+    for (std::string const &collName : collNames)
+    {
+        if(equals_any(collName, gOptions.coll_MCP_collections))
+        {
+            MCPartCollNames.push_back(collName);
+        }
+    }
+    if(true)
+    {
+          if (gGUIManager._MCPList)
+          {
+              MCPDraw = gGUIManager._MCPList->GetRnrSelf();
+              MCPChildDraw = gGUIManager._MCPList->GetRnrChildren();
 
-      std::string CollHead(*name, 0, 5);
+              for (TEveElement::List_i itt = gGUIManager._MCPList->BeginChildren();
+                   itt != gGUIManager._MCPList->EndChildren(); itt++)
+              {
+                  std::string colname = (*itt)->GetElementName();
+                  if (MCParticleDisplayFlag.find(colname) ==
+                      MCParticleDisplayFlag.end())
+                      MCParticleDisplayFlag[colname] = (*itt)->GetRnrSelf();
+              }
+
+              gGUIManager._MCPList->DestroyElements();
+              gGUIManager._MCPList->Destroy();
+          }
+          gGUIManager._MCPList = BuildMCParticles(evt, MCPartCollNames);
+          gGUIManager._MCPList->SetRnrSelfChildren(MCPDraw, MCPChildDraw);
+          gGUIManager._MCPList->SetName("MCParticles");
+          gEve->AddElement(gGUIManager._MCPList);
+
+          if (FlagMultiView)
+          {
+              gMultiView->ImportEventRPhi(gGUIManager._MCPList);
+              gMultiView->ImportEventRhoZ(gGUIManager._MCPList);
+          }
+    }
+
+    for (std::string const &collName : collNames) {
+      LCCollection* col = evt->getCollection(collName);
+
+      std::string CollHead(collName, 0, 5);
       string ct = col->getTypeName();
 
       if (col->getNumberOfElements() == 0) continue;
 
-      if (DisplayFlag.find(*name) == DisplayFlag.end()) {
+      if (DisplayFlag.find(collName) == DisplayFlag.end()) {
         // if ( ct==LCIO::SIMCALORIMETERHIT ||
         if (flagdetectortype == 10) {
           FlagDraw = true;
@@ -363,92 +402,72 @@ void load_collections(LCEvent* evt, string coltype) {
           FlagDraw = false;
         }
       } else
-        FlagDraw = DisplayFlag[*name];
+        FlagDraw = DisplayFlag[collName];
 
       if (coltype != "" && coltype != ct) continue;
 
-      if (*name == "MCParticle") {
-        if (pMCParticle) {
-          MCPDraw = pMCParticle->GetRnrSelf();
-          MCPChildDraw = pMCParticle->GetRnrChildren();
-
-          for (TEveElement::List_i itt = pMCParticle->BeginChildren();
-               itt != pMCParticle->EndChildren(); itt++) {
-            std::string colname = (*itt)->GetElementName();
-            if (MCParticleDisplayFlag.find(colname) ==
-                MCParticleDisplayFlag.end())
-              MCParticleDisplayFlag[colname] = (*itt)->GetRnrSelf();
-          }
-
-          pMCParticle->DestroyElements();
-          pMCParticle->Destroy();
-        }
-        pMCParticle = BuildMCParticles(evt);
-        pMCParticle->SetRnrSelfChildren(MCPDraw, MCPChildDraw);
-        pMCParticle->SetName("MCPARTICLE");
-        gEve->AddElement(pMCParticle);
-
-        if (FlagMultiView) {
-          gMultiView->ImportEventRPhi(pMCParticle);
-          gMultiView->ImportEventRhoZ(pMCParticle);
-        }
-
+      if (equals_any(collName, gOptions.coll_MCP_collections))
+      {
+        // Already displayed in BuildMCParticles
+        cout << "  Collection <" << collName
+             << "  already displayed in MCParticles form" << endl
+             << endl;
       } else if (ct == LCIO::MCPARTICLE) {
-        cout << "  Collection <" << *name
-             << "> already displayed in MCParticles form" << endl
+        cout << "  Collection <" << collName
+             << "  skiped" << endl
              << endl;
       } else if (find(ignoredTypes.begin(), ignoredTypes.end(), ct) !=
                  ignoredTypes.end()) {
-        cout << "  Collection <" << *name << "> will not be displayed. " << endl
+        cout << "  Collection <" << collName << "> will not be displayed. " << endl
              << endl;
       } else if (ct == LCIO::VERTEX) {
-        TEveElementList* temp = Vertex(col, *name);
+        TEveElementList* temp = Vertex(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::RAWCALORIMETERHIT) {
-        TEveElementList* temp = CaloHits(col, *name);
+        TEveElementList* temp = CaloHits(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::CALORIMETERHIT) {
-          if (ends_with_any(*name, gOptions.coll_caloHit_filterOutSuffixes))
+          if (ends_with_any(collName, gOptions.coll_caloHit_filterOutSuffixes))
           {
-              std::cout << "  Collection <" << *name
+              std::cout << "  Collection <" << collName
                    << " filter out" << endl
                    << endl;
               continue;
           }
 
-        TEveElementList* temp = CaloHits(col, *name);
+        TEveElementList* temp = CaloHits(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::SIMCALORIMETERHIT) {
-        TEveElementList* temp = CaloHits(col, *name);
+        TEveElementList* temp = CaloHits(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::TRACKERHIT) {
-        TEveElementList* temp = TrackerHits(col, *name);
+        TEveElementList* temp = TrackerHits(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::SIMTRACKERHIT) {
-        TEveElementList* temp = TrackerHits(col, *name);
+        TEveElementList* temp = TrackerHits(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::TRACK) {
-        TEveElementList* temp = TrackAssignedHits(col, *name);
+        TEveElementList* temp = TrackAssignedHits(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::RECONSTRUCTEDPARTICLE) {
-        if (*name == "PandoraPFOs" || *name == "PandoraPFANewPFOs" ||
+        if (collName == "PandoraPFOs" || collName == "PandoraPFANewPFOs" ||
             CollHead == "Arbor") {  // Supposed to be modified if user needed...
-          TEveElementList* temp = BuildPFOs(col, *name);
+          TEveElementList* temp = BuildPFOs(col, collName);
           temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
           collectionClasses[ct]->AddElement(temp);
-        } else if (*name == "Durham_4Jets" || *name == "Durham_6Jets") {
-          TEveElementList* temp = RecoJets(col, *name);
+        } else if (collName == "Durham_4Jets" || collName == "Durham_6Jets") {
+          TEveElementList* temp = RecoJets(col, collName);
           temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
           collectionClasses[ct]->AddElement(temp);
         } else {
-          cout << "   " << *name
+          cout << "   " << collName
                << " is currently considering as Reconstructed Particles... "
                   "will skip "
                << endl;
@@ -457,16 +476,16 @@ void load_collections(LCEvent* evt, string coltype) {
                  (CollHead == "Henri" || CollHead == "InitH" ||
                   CollHead == "InitE" || CollHead == "Links")) {
         HenriCount++;
-        TEveCompound* temp = ConnectTrees(col, *name);
+        TEveCompound* temp = ConnectTrees(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::CLUSTER) {
-        TEveElementList* temp = ClusterHits(col, *name);
+        TEveElementList* temp = ClusterHits(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else {
         cout << "  Unknown collection type " << col->getTypeName()
-             << " for collection " << *name << endl
+             << " for collection " << collName << endl
              << endl;
       }
     }
