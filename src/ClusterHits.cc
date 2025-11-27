@@ -37,7 +37,6 @@ using namespace std;
 using namespace EVENT;
 
 float ClusterHitSize = 1.0;
-int ClusterHitColourType = 1; 
 extern int flagdetectortype;
 const float HCALBarrelLengthILD = 309.3;
 const float HCALBarrelLengthSID = 320.0; 
@@ -188,18 +187,18 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
 					q = BoxPhi(HitPosition, HitScale, 1, 8, HitEn );
 				}
 
-				if(ClusterHitColourType == 0)
+				if(gGUIManager.ClusterHitColourType == 0)
 				{
 					q->SetMainColor(5);
 					q->SetLineColor(5);
 				}
-				else if(ClusterHitColourType == 1)
+				else if(gGUIManager.ClusterHitColourType == 1)
 				{
 					int colorindex = (iC*11 + GlobalRandomColorIndex*13 + LocalRandomIndex)%50 + 51;
 					q->SetMainColor(colorindex);
 					q->SetLineColor(colorindex);
 				}
-				else if(ClusterHitColourType == 2)
+				else if(gGUIManager.ClusterHitColourType == 2)
 				{        //Uniform Color: Red for PFO used
 					q->SetMainColor(2);
 					q->SetLineColor(2);

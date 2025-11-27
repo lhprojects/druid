@@ -56,7 +56,8 @@ void make_gui()
 
 	TGLViewer* glviewer = gEve->GetDefaultViewer()->GetGLViewer();
 	TGLViewer* v = gEve->GetDefaultGLViewer();
-	EventNavigator* fh = new EventNavigator;
+	// Use global EventNavigator instance
+	EventNavigator* fh = &gEventNavigator;
 
 	//event navigation   
 	{
@@ -161,7 +162,7 @@ void make_gui()
 
 	//Simulated CaloHits Style;
 	{
-		TGGroupFrame *frmHitColour = new TGGroupFrame(frmMain, "SimCaloHit Colur: ");   
+		TGGroupFrame *frmHitColour = new TGGroupFrame(frmMain, "SimCaloHit Color: ");   
 		frmMain->AddFrame(frmHitColour, new TGLayoutHints(kLHintsNormal, 2, 2, 0, 0));
 
 		TGComboBox* menuHitColour = new TGComboBox(frmHitColour);
@@ -174,6 +175,7 @@ void make_gui()
 		menuHitColour->AddEntry("Uniform Yellow", 4);
 		menuHitColour->AddEntry("EM, Had & Neutron", 5);
 		menuHitColour->AddEntry("Timing/ns", 6);
+		menuHitColour->AddEntry("MCParticle Color", 7);
 		menuHitColour->Select(0, kFALSE);		//Default choice: Color with PID
 		//menuHitColour->Connect("Selected(Int_t)", "EventNavigator", fh, "setCellColour(Int_t)");
 		menuHitColour->Connect("Selected(int)", "EventNavigator", fh, "setCellColour(int)");
@@ -450,5 +452,3 @@ void make_gui()
 	browser->StopEmbedding();
 	browser->SetTabTitle("Options", 0);
 }
-
-

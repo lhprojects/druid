@@ -35,7 +35,8 @@ void printHelp() {
                 << "Options:\n"
                 << "  -h   Show this help message\n"
                 << "  -v    Show version information\n"
-                << "  -MCPtCut    MC Particle Pt Cut (GeV) (default=0.1)\n";
+                << "  -MCPtCut    MC Particle Pt Cut (GeV) (default=0.1)\n"
+                << "  -BField     Magnetic field strength in Tesla (default=3.5)\n";
 }
 
 
@@ -112,6 +113,7 @@ void Options::parse(int &argc, char** &argv) {
     static std::vector<char *> argv_;
 
     MCPtCut = 0.1;
+    BField = 3.5;
     printHelp=false;
     printVersion=false;
 
@@ -119,6 +121,7 @@ void Options::parse(int &argc, char** &argv) {
 
     for (int i = 1; i < argc;) {
         if(read_double(argc, argv, i, "-MCPtCut", MCPtCut)) {
+        } else if(read_double(argc, argv, i, "-BField", BField)) {
         } else if (read_bool(argc, argv, i, "-h", printHelp)) {
         } else if (read_bool(argc, argv, i, "-v", printVersion)) {
         } else if(add_string(argc, argv, i, "-coll.caloHit.filterOutSuffix", coll_caloHit_filterOutSuffixes))  {

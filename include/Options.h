@@ -7,6 +7,7 @@ struct Options
 {
 
     double MCPtCut;
+    double BField;
     bool printVersion;
     bool printHelp;
     std::vector<std::string> coll_caloHit_filterOutSuffixes;

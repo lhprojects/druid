@@ -55,6 +55,7 @@ bool IsNeutrino(int PID){
 TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const &mcpartcollnames)
 {
     gGUIManager._MCPTracks.clear();
+    gGUIManager._MCPGroups.clear();
     gGUIManager._MCPShowing.clear();
 
 	// Preserve visibility states from previous MCPList
@@ -515,16 +516,15 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 									"(Px, Py, Pz) = (%.3f, %.3f, %.3f)\n",
 									EventNr, i, charge, PID, energy,
 									Vx, Vy, Vz, Ex, Ey, Ez, px, py, pz));
-					}
-					if ( currCompound ) {
-						currCompound->AddElement(track);
-						gGUIManager._MCPTracks[part] = track;                        
-					}
 				}
-
-				currCompound->MakeTracks();
-
+				if ( currCompound ) {
+					currCompound->AddElement(track);
+					gGUIManager._MCPTracks[part] = track;
+					gGUIManager._MCPGroups[part] = currCompound;
+				}
 			}
+
+			currCompound->MakeTracks();			}
 
 			//        currCompound->CloseCompound();
 
@@ -541,7 +541,6 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 			MCTracks->AddElement(cpdNeutrons);
 			MCTracks->AddElement(cpdKlongs);
 			MCTracks->AddElement(cpdIon);
-
 
 
 			cpdLowE->SetRnrSelfChildren(kFALSE, kFALSE);

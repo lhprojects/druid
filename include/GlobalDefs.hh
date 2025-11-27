@@ -11,6 +11,7 @@
 #include "TEveCompound.h"
 #include "TEveElement.h"
 #include "TEveTrack.h"
+#include "TEveBox.h"
 #include "IMPL/LCTOOLS.h"
 #include "EVENT/LCCollection.h"
 #include "EVENT/SimTrackerHit.h"
@@ -19,6 +20,9 @@
 #include "EVENT/LCEvent.h"
 #include <string>
 #include <vector>
+
+// Forward declarations
+class EventNavigator;
 
 struct EventState
 {
@@ -33,18 +37,27 @@ struct GUIManager
     TGNumberEntry *_EventNumberEntry = nullptr;
     TEveElementList* _MCPList = nullptr;
     std::map<EVENT::MCParticle*, TEveTrack*> _MCPTracks;
+    std::map<EVENT::MCParticle*, TEveElement*> _MCPGroups;
     std::map<EVENT::MCParticle*, bool> _MCPShowing;
     std::map<std::string, int> _MCParticleDisplayFlag;
+    std::map<EVENT::SimCalorimeterHit*, TEveBox*> _SimCaloHitBoxes;
 
+    int HitColourType = 0;
+    int PFOHitColourType = 0;
+    int ClusterHitColourType = 1;
 
     std::map<EVENT::MCParticle*, TEveTrack*> getMCPTracks();
-    bool isMCPShowing( EVENT::MCParticle* part );
-    bool setIsMCPShowing( EVENT::MCParticle* part, bool isShowing );
 
 
 };
 
 extern GUIManager gGUIManager;
+
+// Global EventNavigator instance for signal connections
+extern EventNavigator gEventNavigator;
+
+// Function to update SimCalorimeterHit colors to match MCParticle visibility and colors
+void UpdateHitColorsToMatchMCParticles();
 
 
 struct DisplayState

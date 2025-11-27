@@ -28,17 +28,18 @@
 #include "TEveBoxSet.h"
 #include "TEveRGBAPalette.h"
 #include "TEveRGBAPaletteOverlay.h"
+#include "TEveManager.h"
 #include "TStyle.h"
 #include "TVector3.h"
 #include "UTIL/CellIDDecoder.h"
 #include "lcio.h"
+#include "TruthHelper.h"
 
 using namespace lcio;
 using namespace EVENT;
 using namespace std;
 
 double cellEnergyThresh = 0.0;
-int HitColourType = 0;
 float HitColourFactor = 0.3;
 float HitColourUnitFactor = 1000; ///< change the unit of over/under flow limit by into MeV/HitColourUnitFactor
 float HitColourOverflowLimit = 10;
@@ -94,6 +95,8 @@ const float MIPDIGIMUON = 0.01;
 TEveElementList* CaloHits(LCCollection* col, string name) {
   bool isSimHit = col->getTypeName() == LCIO::SIMCALORIMETERHIT;
   bool isRawHit = col->getTypeName() == LCIO::RAWCALORIMETERHIT;
+
+  // Clear SimCalorimeterHit boxes when processing SimCalorimeterHit collection
 
   TEveElementList* cal = new TEveElementList;
 
@@ -313,7 +316,7 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
 
         // Try to get Mother
 
-        if (HitColourType == 2) {
+        if (gGUIManager.HitColourType == 2) {
           MCParticle* hitMCPart0 =
               dynamic_cast<MCParticle*>(hit->getParticleCont(MaxEnergyDepoID));
 
@@ -477,7 +480,7 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
       ;
     }
 
-    if (HitColourType == 1 || !isSimHit) {  // rep Hit Energy in Color
+    if (gGUIManager.HitColourType == 1 || !isSimHit) {  // rep Hit Energy in Color
       // TColor Color;
       // int RGB = (int)((HitEn-MinHitEnergy)/(MaxHitEnergy-MinHitEnergy))*256;
 
@@ -557,8 +560,7 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
         }
       }
 
-    } else if (HitColourType ==
-               0) {  // rep direct deposition Particle Type with Color
+    } else if (gGUIManager.HitColourType == 0) {  // rep direct deposition Particle Type with Color
 
       switch (MCPID) {
         case (12):  // Neutrinos: Normally doesn't creates hits...
@@ -627,18 +629,18 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
           break;
       }
       IndexHitColorLine = IndexHitColorMain;
-    } else if (HitColourType == 2) {
+    } else if (gGUIManager.HitColourType == 2) {
       // IndexHitColorMain = (Originindex*13 + GlobalRandomColorIndex*7)%50+51;
       IndexHitColorMain = Originindex;
-    } else if (HitColourType == 3) {
+    } else if (gGUIManager.HitColourType == 3) {
       IndexHitColorMain = ((MCPIDindex % 2) * 25 + MCPIDindex * 5 +
                            GlobalRandomColorIndex * 13) %
                               50 +
                           51;
-    } else if (HitColourType == 4)  // Uniformed Color for Simulated Hit: Blue
+    } else if (gGUIManager.HitColourType == 4)  // Uniformed Color for Simulated Hit: Blue
     {
       IndexHitColorMain = 5;
-    } else if (HitColourType == 5) {
+    } else if (gGUIManager.HitColourType == 5) {
       if (MCHitType == 11 || MCHitType == -11 || MCHitType == 22) {
         IndexHitColorMain = 4;       // Blue for EM
       } else if (MCHitType == 2112)  // Neutron
@@ -647,7 +649,7 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
       } else {
         IndexHitColorMain = 2;
       }
-    } else if (HitColourType == 6) {
+    } else if (gGUIManager.HitColourType == 6) {
       if (MCContTime == -10) {
         std::cout << "Timing info not available in current data file"
                   << std::endl;
@@ -662,6 +664,11 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
         }
       }
       if (IndexHitColorMain > 100) IndexHitColorMain = 100;
+      IndexHitColorLine = IndexHitColorMain;
+    } else if (gGUIManager.HitColourType == 7) {
+      // Color scheme 7: Use MCParticle colors (handled by UpdateHitColorsToMatchMCParticles)
+      // Set initial color to gray, will be updated by UpdateHitColorsToMatchMCParticles()
+      IndexHitColorMain = kGray;
       IndexHitColorLine = IndexHitColorMain;
     }
 
@@ -799,6 +806,15 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
                    10 * HitY, 10 * HitZ));
         }
       }
+      
+      // Store SimCalorimeterHit box for later updates
+      if (isSimHit) {
+        SimCalorimeterHit* hit =
+            dynamic_cast<SimCalorimeterHit*>(col->getElementAt(i));
+        std::cout << "add calo hit" << hit << std::endl;
+        gGUIManager._SimCaloHitBoxes[hit] = q;
+      }
+      
       cal->AddElement(q);
     }
   }
@@ -1061,4 +1077,74 @@ TVector3 GetAhcalHitPos(int layer_ID, int chip_ID, int channel_ID) {
   pos.SetY(-(-_Pos_X[channel_ID] + (HBU_ID - 1) * HBU_X));
   pos.SetZ(layer_ID * HBU_Z);
   return pos;
+}
+
+// Function to update SimCalorimeterHit colors to match MCParticle visibility and colors
+void UpdateHitColorsToMatchMCParticles() {
+    std::cout << "Updating SimCalorimeterHit colors to match MCParticle visibility..." << std::endl;
+    
+    int updatedCount = 0;
+    int grayCount = 0;
+    
+    // Iterate through all stored SimCalorimeterHit boxes
+    for (auto& hitBox : gGUIManager._SimCaloHitBoxes) {
+        EVENT::SimCalorimeterHit* hit = hitBox.first;
+        TEveBox* box = hitBox.second;
+        
+        std::cout << "Processing hit: " << hit << ", box: " << box << std::endl;
+        if (!hit || !box) continue;
+        
+        // Get the main MCParticle for this hit
+        EVENT::MCParticle* mainMCP = gTruthHelper.GetMainMCP(hit);
+        bool mcpIsVisible = false;
+        int newColor = kGray;
+
+        std::cout << "Main MCP for hit " << hit << ": " << mainMCP << std::endl;
+        
+        if (mainMCP && gGUIManager._MCPTracks.find(mainMCP) != gGUIManager._MCPTracks.end()) {
+            TEveTrack* track = gGUIManager._MCPTracks[mainMCP];
+            
+            // Check if the track is visible
+            bool trackVisible = track && track->GetRnrSelf();
+            
+            // Check if the particle's group is showing
+            bool groupVisible = true;
+            auto groupIt = gGUIManager._MCPGroups.find(mainMCP);
+            if (groupIt != gGUIManager._MCPGroups.end()) {
+                TEveElement* group = groupIt->second;
+                if (group) {
+                    groupVisible = group->GetRnrSelf() && group->GetRnrChildren();
+                    std::cout << "group self visible: " << group->GetRnrSelf()
+                              << ", children visible: " << group->GetRnrChildren() << std::endl;
+                }
+            }
+            
+            if (trackVisible && groupVisible) {
+                mcpIsVisible = true;
+                // Use the same color as the MCParticle track
+                newColor = track->GetLineColor();                
+                std::cout << "MCP is visible. Using track color: " << newColor << std::endl;
+            }
+        }
+        
+        if (!mcpIsVisible) {
+            newColor = kGray;
+            grayCount++;
+        } else {
+            updatedCount++;
+        }
+        
+        // Update the box color
+        box->SetMainColor(newColor);
+        box->SetMainAlpha(0.8);
+        box->SetLineColor(newColor);
+    }
+    
+    std::cout << "Updated " << updatedCount << " hits to match MCParticle colors, " 
+              << grayCount << " hits set to gray" << std::endl;
+    
+    // Redraw without resetting camera view
+    if (gEve) {
+        gEve->Redraw3D(kFALSE);
+    }
 }

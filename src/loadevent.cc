@@ -25,6 +25,7 @@
 #include "EVENT/MCParticle.h"
 #include "GlobalDefs.hh"
 #include "EventNavigator.hh"
+#include "TruthHelper.h"
 #include "IO/LCReader.h"
 #include "MultiView.hh"
 #include "TEveCompound.h"
@@ -204,6 +205,9 @@ void load_event(int EventNum) {
           cout << "    Event Statistics: " << endl
                << endl;
 
+          // Reset truth helper when loading new event
+          gTruthHelper.ResetMCTruth(evt);
+
           load_collections(evt, "");
 
           last_event_id = EventNum;
@@ -347,23 +351,32 @@ void load_collections(LCEvent* evt, string coltype) {
        gMultiView->DestroyEventRhoZ();
        */
 
-    // Build MC Particles
-    std::vector<std::string> MCPartCollNames;
-    for (std::string const &collName : collNames)
+    // Build MC Particles only when loading all collections or specifically MCParticle type
+    if (coltype == "" || coltype == LCIO::MCPARTICLE)
     {
-        if(equals_any(collName, gOptions.coll_MCP_collections))
+        std::vector<std::string> MCPartCollNames;
+        for (std::string const &collName : collNames)
         {
-            MCPartCollNames.push_back(collName);
+            if (equals_any(collName, gOptions.coll_MCP_collections))
+            {
+                MCPartCollNames.push_back(collName);
+            }
+        }
+
+        // Always rebuild MCParticles (unconditionally)
+        gGUIManager._MCPList = BuildMCParticles(evt, MCPartCollNames);
+        gEve->AddElement(gGUIManager._MCPList);
+
+        if (FlagMultiView)
+        {
+            gMultiView->ImportEventRPhi(gGUIManager._MCPList);
+            gMultiView->ImportEventRhoZ(gGUIManager._MCPList);
         }
     }
-    
-    gGUIManager._MCPList = BuildMCParticles(evt, MCPartCollNames);
-    gEve->AddElement(gGUIManager._MCPList);
 
-    if (FlagMultiView)
+    if (coltype == "" || coltype == LCIO::SIMCALORIMETERHIT)
     {
-        gMultiView->ImportEventRPhi(gGUIManager._MCPList);
-        gMultiView->ImportEventRhoZ(gGUIManager._MCPList);
+        gGUIManager._SimCaloHitBoxes.clear();
     }
 
     for (std::string const &collName : collNames) {
@@ -505,6 +518,13 @@ void load_collections(LCEvent* evt, string coltype) {
         gMultiView->ImportEventRPhi(collectionClasses[coltype]);
         gMultiView->ImportEventRhoZ(collectionClasses[coltype]);
       }
+    }
+    
+    // Update SimCalorimeterHit colors after ALL collections are loaded
+    // Only for color scheme 7 (MCParticle colors)
+    if ((coltype == LCIO::SIMCALORIMETERHIT || coltype == "") && 
+        gGUIManager.HitColourType == 7) {
+      UpdateHitColorsToMatchMCParticles();
     }
   } else {
     std::cout

@@ -43,7 +43,6 @@ extern int GlobalRandomColorIndex;
 extern float HCALBarrelLength;
 extern int flagdetectortype;
 extern float ClusterHitSize;
-int PFOHitColourType = 0;
 float PFOHitSize = 1.0;
 bool HiddenPFOCluster = 1.0;
 
@@ -308,7 +307,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 
 				int colorindex = 0;
 
-				if( PFOHitColourType == 0)
+				if( gGUIManager.PFOHitColourType == 0)
 				{
 					if(PID == 22)
 						colorindex = 5;
@@ -329,11 +328,11 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 					else
 						colorindex = 10; 
 				}
-				else if( PFOHitColourType == 2 )
+				else if( gGUIManager.PFOHitColourType == 2 )
 				{
 					colorindex = 3;
 				}
-				else if ( PFOHitColourType == 1 )
+				else if ( gGUIManager.PFOHitColourType == 1 )
 				{
 					colorindex = (i*11 + GlobalRandomColorIndex*13)%50 + 51;
 				}

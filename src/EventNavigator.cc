@@ -31,9 +31,7 @@
 
 extern LCReader* lcReader;
 extern LCEvent* evt;
-extern int HitColourType;
-extern int PFOHitColourType;
-extern int ClusterHitColourType;
+
 extern bool HitSizeLog;
 extern bool Flag_AttachTextToHit;
 extern float PFOHitSize;
@@ -44,6 +42,9 @@ extern float HitColourFactor;
 extern float HitColourUnitFactor;
 extern int GlobalRandomColorIndex;
 extern float HitEnergyCut;
+
+// Global EventNavigator instance
+EventNavigator gEventNavigator;
 
 // for TEveRGBAPalette powered coloring style
 extern TEveRGBAPalette* p;
@@ -145,10 +146,18 @@ void EventNavigator::MultiViewSwitch() {
 
 void EventNavigator::setCellColour(int ds) {
   std::cout << "INFO: ds = " << ds << std::endl;
-  HitColourType = ds;
-  if (HitColourType < 0) HitColourType = 0;
-  if (HitColourType > 6) HitColourType = 0;
-  load_collections(evt, LCIO::SIMCALORIMETERHIT);
+  gGUIManager.HitColourType = ds;
+  if (gGUIManager.HitColourType < 0) gGUIManager.HitColourType = 0;
+  if (gGUIManager.HitColourType > 7) gGUIManager.HitColourType = 0;
+  
+  if(gGUIManager.HitColourType == 7) {
+    // For color scheme 7, just update the colors to match current MCParticle visibility
+    UpdateHitColorsToMatchMCParticles();
+  } else {
+    // For other color schemes (0-6), need to reload to apply new coloring
+    load_collections(evt, LCIO::SIMCALORIMETERHIT);
+  }
+  
   return;
 }
 
@@ -165,10 +174,10 @@ void EventNavigator::HidePFOClu() {
 }
 
 void EventNavigator::setPFOCellColour(int ds) {
-  PFOHitColourType = ds;
+  gGUIManager.PFOHitColourType = ds;
 
-  if (PFOHitColourType < 0 || PFOHitColourType > 2) {
-    PFOHitColourType = 1;
+  if (gGUIManager.PFOHitColourType < 0 || gGUIManager.PFOHitColourType > 2) {
+    gGUIManager.PFOHitColourType = 1;
   }
 
   load_collections(evt, LCIO::RECONSTRUCTEDPARTICLE);
@@ -176,11 +185,11 @@ void EventNavigator::setPFOCellColour(int ds) {
 }
 
 void EventNavigator::colorReroll() {
-  if (HitColourType != 2)
-    HitColourType = 3;  // if Energy not of Origin type, automatically swithched
+  if (gGUIManager.HitColourType != 2)
+    gGUIManager.HitColourType = 3;  // if Energy not of Origin type, automatically swithched
                         // to according to Random index
-  PFOHitColourType = 1;
-  ClusterHitColourType = 1;
+  gGUIManager.PFOHitColourType = 1;
+  gGUIManager.ClusterHitColourType = 1;
   GlobalRandomColorIndex++;
   std::cout << "    GlobalRandomColorIndex: " << GlobalRandomColorIndex
             << std::endl;
@@ -279,7 +288,7 @@ void EventNavigator::GotoEvent() {
 }
 
 void EventNavigator::setEnergyScale() {
-  HitColourType = 1;
+  gGUIManager.HitColourType = 1;
   cellEnergyThresh = _cellEnergyThrEntry->GetNumber();
   //  cellEnergyThresh *= 0.00001;
   std::cout << std::endl
@@ -374,4 +383,21 @@ void EventNavigator::setColorUnderflowLimit() {
   v->UpdateScene();
 
   return;
+}
+
+void EventNavigator::OnTrackVisibilityChanged()
+{
+  std::cout << "=== Track Visibility Changed ===" << std::endl;
+
+  // Update SimCalorimeterHit colors only if using color scheme 7 (MCParticle colors)
+  if (gGUIManager.HitColourType == 7) {
+    UpdateHitColorsToMatchMCParticles();
+  }
+
+	std::cout << "=== Update Complete ===" << std::endl;
+}
+
+void EventNavigator::OnElementVisibilityChanged()
+{
+	OnTrackVisibilityChanged();
 }

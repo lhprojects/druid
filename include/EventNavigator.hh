@@ -3,29 +3,30 @@
 
 class EventNavigator
 {
-	public:
-		void Fwd();
-		void Bck();
-		void setCollection();
-		void MultiViewSwitch();
-		void PTCutModify();
-		void CellECutModify();
-		void setCellColour(int ds);
-		void HideLowSimE();
-		void setPFOCellColour(int ds);
-		void colorReroll();
-		void SimuHitSizeModify();
-		void PFOHitSizeModify();
-		void HidePFOClu();
-		void ClusterHitSizeModify();
-		void ScaleModify();
-		void HitTextAttach();
-		void SizeModify();
-		void setEnergyScale();
-		void GotoEvent();
-		void setGlobalEnergyScale();
-		void setColorOverflowLimit();
-		void setColorUnderflowLimit();
+public:
+	void Fwd();
+	void Bck();
+	void setCollection();
+	void MultiViewSwitch();
+	void PTCutModify();
+	void CellECutModify();
+	void setCellColour(int ds);
+	void HideLowSimE();
+	void setPFOCellColour(int ds);
+	void colorReroll();
+	void SimuHitSizeModify();
+	void PFOHitSizeModify();
+	void HidePFOClu();
+	void ClusterHitSizeModify();
+	void ScaleModify();
+	void HitTextAttach();
+	void SizeModify();
+	void setEnergyScale();
+	void GotoEvent();
+	void setGlobalEnergyScale();
+	void setColorOverflowLimit();
+	void setColorUnderflowLimit();
+	void OnTrackVisibilityChanged();
+	void OnElementVisibilityChanged();
 };
-#endif //EVENT_NAV_
-
+#endif // EVENT_NAV_

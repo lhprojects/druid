@@ -26,6 +26,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # find ROOT and LCIO
 find_package(ROOT COMPONENTS Gui Core Imt RIO Net Hist Graf Graf3d Gpad ROOTVecOps Tree TreePlayer Rint Postscript Matrix Physics MathCore Thread MultiProc ROOTDataFrame Geom Ged RGL EG Eve REQUIRED)
 
+# Find GSL
+find_package(GSL REQUIRED)
+
 # Try to find LCIO
 find_path(LCIO_INCLUDE_DIRS lcio.h)
 find_library(LCIO_LIBRARIES NAMES lcio)
@@ -81,7 +84,9 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/EventNavigatorDict_rdict.pcm
 
 
 # add include PATH
-include_directories(${ROOT_INCLUDE_DIRS} ${LCIO_INCLUDE_DIRS} include)
+include_directories(${ROOT_INCLUDE_DIRS} ${LCIO_INCLUDE_DIRS} ${GSL_INCLUDE_DIRS} include thirdparty/MLPFA/core/include thirdparty/MLPFA/thirdparty/PFAA/include)
+include_directories(${ROOT_INCLUDE_DIRS} ${LCIO_INCLUDE_DIRS} include thirdparty/MLPFA/thirdparty/PFATime/include )
+
 
 # add source code
 file(GLOB SOURCES "src/*.cc")
@@ -89,6 +94,7 @@ file(GLOB SOURCES "src/*.cc")
 # add dependency
 set(LIBRARIES
   ${ROOT_LIBRARIES}
+  ${GSL_LIBRARIES}
 )
 
 
