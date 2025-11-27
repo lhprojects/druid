@@ -22,8 +22,8 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     simCaloHitMainMCP.clear();
     mainMCParticles.clear();
 
-    mlpfa_reader.fillInputData(evt, gLCIOData, gMLPFAInputData, gMLPFAMetaData);
     MLPFA::MLGeom::instance().setBField(gOptions.BField);
+    mlpfa_reader.fillInputData(evt, gLCIOData, gMLPFAInputData, gMLPFAMetaData);
 
     for(int iobj = 0; iobj < gMLPFAInputData.m_objects.size(); ++iobj)
     {
