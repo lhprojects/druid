@@ -33,6 +33,15 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
 
 
     MLPFA::MLGeom::instance().setBField(gOptions.BField);
+    
+    // Set TPC geometry if provided via command line options
+    if (gOptions.tpc_innerRadius > 0) {
+        MLPFA::MLGeom::instance().setTPCInnerRadius(gOptions.tpc_innerRadius);
+    }
+    if (gOptions.tpc_outerRadius > 0) {
+        MLPFA::MLGeom::instance().setTPCOuterRadius(gOptions.tpc_outerRadius);
+    }
+    
     mlpfa_reader.m_MCParticleCollectionNames = m_MCPCollNames;
 
     mlpfa_reader.fillInputData(evt, gLCIOData, gMLPFAInputData, gMLPFAMetaData);

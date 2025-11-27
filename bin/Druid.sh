@@ -12,5 +12,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 "$SCRIPT_DIR/Druid" -coll.caloHit.filterOutSuffix Digi \
  -coll.simCaloHit.filterOutSuffix HitsEven \
  -coll.simCaloHit.filterOutSuffix HitsOdd \
+ -tpc.innerRadius 330.0 \
+ -tpc.outerRadius 1700.0 \
+ -tpc.halfZ 2350.0 \
  "$@"
+ 
 
