@@ -9,5 +9,8 @@ export LIBGL_ALWAYS_SOFTWARE=1
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 # Run the sibling executable "Druid"
-"$SCRIPT_DIR/Druid" -BField 3.5 -coll.caloHit.filterOutSuffix Digi "$@"
+"$SCRIPT_DIR/Druid" -coll.caloHit.filterOutSuffix Digi \
+ -coll.simCaloHit.filterOutSuffix HitsEven \
+ -coll.simCaloHit.filterOutSuffix HitsOdd \
+ "$@"
 

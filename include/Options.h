@@ -11,6 +11,7 @@ struct Options
     bool printVersion;
     bool printHelp;
     std::vector<std::string> coll_caloHit_filterOutSuffixes;
+    std::vector<std::string> coll_simCaloHit_filterOutSuffixes;
     std::vector<std::string> coll_MCP_collections;
     
     Options();

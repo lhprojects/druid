@@ -125,6 +125,7 @@ void Options::parse(int &argc, char** &argv) {
         } else if (read_bool(argc, argv, i, "-h", printHelp)) {
         } else if (read_bool(argc, argv, i, "-v", printVersion)) {
         } else if(add_string(argc, argv, i, "-coll.caloHit.filterOutSuffix", coll_caloHit_filterOutSuffixes))  {
+        } else if(add_string(argc, argv, i, "-coll.simCaloHit.filterOutSuffix", coll_simCaloHit_filterOutSuffixes))  {
         } else if(add_string(argc, argv, i, "-coll.MCP.add", coll_MCP_collections)) 
         {
         } else {

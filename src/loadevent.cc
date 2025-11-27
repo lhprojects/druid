@@ -433,7 +433,7 @@ void load_collections(LCEvent* evt, string coltype) {
           if (ends_with_any(collName, gOptions.coll_caloHit_filterOutSuffixes))
           {
               std::cout << "  Collection <" << collName
-                   << " filter out" << endl
+                   << "> filtered out" << endl
                    << endl;
               continue;
           }
@@ -442,6 +442,13 @@ void load_collections(LCEvent* evt, string coltype) {
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::SIMCALORIMETERHIT) {
+          if (ends_with_any(collName, gOptions.coll_simCaloHit_filterOutSuffixes))
+          {
+              std::cout << "  SimCalorimeterHit Collection <" << collName
+                   << "> filtered out" << endl
+                   << endl;
+              continue;
+          }
         TEveElementList* temp = createSimCaloHits(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
