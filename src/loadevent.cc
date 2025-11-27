@@ -24,6 +24,7 @@
 #include "EVENT/LCEvent.h"
 #include "EVENT/MCParticle.h"
 #include "GlobalDefs.hh"
+#include "EventNavigator.hh"
 #include "IO/LCReader.h"
 #include "MultiView.hh"
 #include "TEveCompound.h"
@@ -65,7 +66,6 @@ extern bool DefaultCollectionFlag;
 std::map<float, int>
     randomColor;  // used to give an random color to each MCParticle
 std::map<MCParticle*, int> OriginColor;  // used to give ... to Origin Particle
-std::map<string, int> MCParticleDisplayFlag;
 
 std::map<string, TEveElementList*> collectionClasses;
 
@@ -347,6 +347,7 @@ void load_collections(LCEvent* evt, string coltype) {
        gMultiView->DestroyEventRhoZ();
        */
 
+    // Build MC Particles
     std::vector<std::string> MCPartCollNames;
     for (std::string const &collName : collNames)
     {
@@ -355,35 +356,14 @@ void load_collections(LCEvent* evt, string coltype) {
             MCPartCollNames.push_back(collName);
         }
     }
-    if(true)
+    
+    gGUIManager._MCPList = BuildMCParticles(evt, MCPartCollNames);
+    gEve->AddElement(gGUIManager._MCPList);
+
+    if (FlagMultiView)
     {
-          if (gGUIManager._MCPList)
-          {
-              MCPDraw = gGUIManager._MCPList->GetRnrSelf();
-              MCPChildDraw = gGUIManager._MCPList->GetRnrChildren();
-
-              for (TEveElement::List_i itt = gGUIManager._MCPList->BeginChildren();
-                   itt != gGUIManager._MCPList->EndChildren(); itt++)
-              {
-                  std::string colname = (*itt)->GetElementName();
-                  if (MCParticleDisplayFlag.find(colname) ==
-                      MCParticleDisplayFlag.end())
-                      MCParticleDisplayFlag[colname] = (*itt)->GetRnrSelf();
-              }
-
-              gGUIManager._MCPList->DestroyElements();
-              gGUIManager._MCPList->Destroy();
-          }
-          gGUIManager._MCPList = BuildMCParticles(evt, MCPartCollNames);
-          gGUIManager._MCPList->SetRnrSelfChildren(MCPDraw, MCPChildDraw);
-          gGUIManager._MCPList->SetName("MCParticles");
-          gEve->AddElement(gGUIManager._MCPList);
-
-          if (FlagMultiView)
-          {
-              gMultiView->ImportEventRPhi(gGUIManager._MCPList);
-              gMultiView->ImportEventRhoZ(gGUIManager._MCPList);
-          }
+        gMultiView->ImportEventRPhi(gGUIManager._MCPList);
+        gMultiView->ImportEventRhoZ(gGUIManager._MCPList);
     }
 
     for (std::string const &collName : collNames) {

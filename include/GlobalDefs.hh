@@ -2,19 +2,50 @@
 #define GLOBALDEFS_H_
 
 #include <string>
+#include <map>
+#include <vector>
+
 #include "TEveVector.h"
 #include "TEvePathMark.h"
 #include "TGNumberEntry.h"
 #include "TEveCompound.h"
 #include "TEveElement.h"
+#include "TEveTrack.h"
+#include "IMPL/LCTOOLS.h"
+#include "EVENT/LCCollection.h"
+#include "EVENT/SimTrackerHit.h"
+#include "EVENT/SimCalorimeterHit.h"
+#include "EVENT/MCParticle.h"
+#include "EVENT/LCEvent.h"
+#include <string>
+#include <vector>
 
+struct EventState
+{
+    int eventNumber = -1;
+    int runNumber = -1;
+
+};
+extern EventState gEventState;
 
 struct GUIManager
 {
     TGNumberEntry *_EventNumberEntry = nullptr;
     TEveElementList* _MCPList = nullptr;
+    std::map<EVENT::MCParticle*, TEveTrack*> _MCPTracks;
+    std::map<EVENT::MCParticle*, bool> _MCPShowing;
+    std::map<std::string, int> _MCParticleDisplayFlag;
+
+
+    std::map<EVENT::MCParticle*, TEveTrack*> getMCPTracks();
+    bool isMCPShowing( EVENT::MCParticle* part );
+    bool setIsMCPShowing( EVENT::MCParticle* part, bool isShowing );
+
+
 };
+
 extern GUIManager gGUIManager;
+
 
 struct DisplayState
 {
@@ -30,7 +61,7 @@ struct DisplayState
     bool isRunNumberSet() const {
         return runNumberSet;
     }
-    int getRunNumber() const {        
+    int getRunNumber() const {
         return runNumber;
     }
 
@@ -51,7 +82,7 @@ extern DisplayState gDisplayState;
 
 
 //class TEveVector;
-//class TEvePathMark;  
+//class TEvePathMark;
 TEvePathMark* PathMarkEndTrack2DClu(TEveVector &Vtx, TEveVector &End);
 TEvePathMark* PathMarkEndTrackDecay(TEveVector &Vtx, TEveVector &End);
 bool IsNeutrino(int PID);
@@ -93,5 +124,6 @@ TEveBox* BoxPhi( TVector3 &HitPos, TVector3 &Scale, int Type, int SegOrStaveNumb
 //------------------ For Prototype ------------------
 TVector3 GetScEcalHitPos(int LayerIDs, int ChipIDs, int ChannelIDs);
 TVector3 GetAhcalHitPos(int LayerIDs, int ChipIDs, int ChannelIDs);
+
 
 #endif //GLOBALDEFS_H_

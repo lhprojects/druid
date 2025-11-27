@@ -28,12 +28,13 @@
 #include "EVENT/MCParticle.h"
 #include "EVENT/LCEvent.h"
 #include "Options.h"
+#include "GlobalDefs.hh"
+#include "EventNavigator.hh"
 
 using namespace lcio;
 using namespace EVENT;
 using namespace std;
 
-extern std::map <string, bool> MCParticleDisplayFlag;
 
 //float PTCut = 0.1; //GeV; Tracks with PT less than this threshold will not be displayed;
 
@@ -53,13 +54,44 @@ bool IsNeutrino(int PID){
 
 TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const &mcpartcollnames)
 {
+    gGUIManager._MCPTracks.clear();
+    gGUIManager._MCPShowing.clear();
+
+	// Preserve visibility states from previous MCPList
+	bool MCPDraw = true;
+	bool MCPChildDraw = true;
+	if (gGUIManager._MCPList)
+	{
+		MCPDraw = gGUIManager._MCPList->GetRnrSelf();
+		MCPChildDraw = gGUIManager._MCPList->GetRnrChildren();
+
+		std::cout << " Saving MC Particle visibility states: " << std::endl;
+		std::cout << "  MCPList RnrSelf: " << MCPDraw << ", RnrChildren: " << MCPChildDraw << std::endl;
+		std::cout << "  Particle Type Visibility States: " << std::endl;
+
+		for (TEveElement::List_i itt = gGUIManager._MCPList->BeginChildren();
+		     itt != gGUIManager._MCPList->EndChildren(); ++itt)
+		{
+			std::string colname = (*itt)->GetElementName();
+			// Always save current visibility state (overwrite if exists)
+			gGUIManager._MCParticleDisplayFlag[colname] = (*itt)->GetRnrSelf();
+
+			std::cout << "   " << colname << ": " << gGUIManager._MCParticleDisplayFlag[colname] << std::endl;
+		}
+		
+		// Destroy old list
+		gGUIManager._MCPList->DestroyElements();
+		gGUIManager._MCPList->Destroy();
+		gGUIManager._MCPList = nullptr;
+	}
+
 	std::cout<<"  "<<endl;
 	std::cout<<"  Start to build MC Tracks collection: "<<endl;
 
 	TEveElementList  *MCTracks = new TEveElementList();
 
 	MCTracks->SetMainColor(kRed);
-	MCTracks->SetName("MC Particles");
+	MCTracks->SetName("MCParticles");
 
 	TEveTrackPropagator* propsetNeutral = new TEveTrackPropagator();
 	TEveTrackPropagator* propsetCharged = new TEveTrackPropagator();
@@ -486,6 +518,7 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 					}
 					if ( currCompound ) {
 						currCompound->AddElement(track);
+						gGUIManager._MCPTracks[part] = track;                        
 					}
 				}
 
@@ -509,6 +542,8 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 			MCTracks->AddElement(cpdKlongs);
 			MCTracks->AddElement(cpdIon);
 
+
+
 			cpdLowE->SetRnrSelfChildren(kFALSE, kFALSE);
 			cpdNeutralHad->SetRnrSelfChildren(kFALSE, kFALSE);
 			cpdNeutrons->SetRnrSelfChildren(kFALSE, kFALSE);
@@ -520,12 +555,28 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 	bool FlagDraw;
 	for (TEveElement::List_i itt=MCTracks->BeginChildren(); itt!=MCTracks->EndChildren(); itt++){
 		std::string colname = (*itt)->GetElementName();
-		if(colname!="LowE" && colname!="NeutralHad" && colname!="Neutrons"){
-			if(MCParticleDisplayFlag.find(colname)!=MCParticleDisplayFlag.end()) FlagDraw=MCParticleDisplayFlag[colname];
-			else FlagDraw = true;
-			(*itt)->SetRnrSelfChildren(FlagDraw, FlagDraw);
+
+		// Restore saved visibility state from previous event
+		if (gGUIManager._MCParticleDisplayFlag.find(colname) != gGUIManager._MCParticleDisplayFlag.end())
+		{
+			FlagDraw = gGUIManager._MCParticleDisplayFlag[colname];
 		}
+		else
+		{
+			// Default visibility: false for LowE/NeutralHad/Neutrons, true for others
+			if (colname == "LowE" || colname == "NeutralHad" || colname == "Neutrons")
+			{
+				FlagDraw = false;
+			}
+			else
+			{
+				FlagDraw = true;
+			}
+		}
+		(*itt)->SetRnrSelfChildren(FlagDraw, FlagDraw);
 	}
+	// Apply saved top-level visibility states from previous event
+	MCTracks->SetRnrSelfChildren(MCPDraw, MCPChildDraw);
 
 	std::cout<<"  With current gOptions.MCPtCut "<<gOptions.MCPtCut<<" GeV, "<<displayedMCParticle<<" MCparticle has been displayed, and "<<skippedMCParticle<<" particles has been skipped"<<std::endl<<std::endl<<std::endl;
 	return MCTracks;
