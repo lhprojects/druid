@@ -45,10 +45,10 @@ float HitColourUnitFactor = 1000; ///< change the unit of over/under flow limit 
 float HitColourOverflowLimit = 10;
 float HitColourUnderflowLimit = 0.;
 bool HitSizeLog = kFALSE;
-bool Flag_AttachTextToHit = kFALSE;
+bool Flag_AttachTextToHit = true;
 int GlobalRandomColorIndex = 0;
 float cellfactor = 1.0;
-float HitEnergyCut = 0.2;  // Mips
+float HitEnergyCut = 0.0;  // Mips
 bool HiddenLowESimCell = kTRUE;
 
 extern int flagdetectortype;
@@ -76,10 +76,10 @@ const float MIP_AHCAL = 0.426e-3;         // GeV
 const float MIP_ADC_AHCAL = 450;
 };  // namespace PrototypeTB
 
-const float MIPSIMECAL = 1.8e-4;
-const float MIPSIMAHCAL = 1.0e-3;
-const float MIPSIMDHCAL = 5.5e-7;
-const float MIPSIMMUON = 1.0e-6;
+extern const float MIPSIMECAL = 1.8e-4;
+extern const float MIPSIMAHCAL = 1.0e-3;
+extern const float MIPSIMDHCAL = 5.5e-7;
+extern const float MIPSIMMUON = 1.0e-6;
 const float MIPDIGIECAL = 0.007;
 // const float MIP_SC_ECAL = 0.00167;//GeV
 const float MIPDIGIAHCAL = 0.031;
@@ -89,8 +89,10 @@ const float MIPDIGIDHCAL = 1;
 const float MIPDIGIMUON = 0.01;
 // const float MIPSIMLCAL = 1.2e-4;	//similar for LHcal and LumiCal
 
+// Forward declaration
+TEveBox *createSimCaloHitBox(SimCalorimeterHit *hit, float MIPS, int type, int caloType);
+
 // TEveBox* BoxPhi( TVector3 &HitPos, TVector3 &Scale, int Type, int
-// SegOrStaveNumber, float HitEnergy );
 
 TEveElementList* CaloHits(LCCollection* col, string name) {
   bool isSimHit = col->getTypeName() == LCIO::SIMCALORIMETERHIT;
@@ -771,7 +773,7 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
       if (Flag_AttachTextToHit) {
         if (isSimHit) {
           q->SetTitle(Form(
-              "Simulated Calo Hits %s\n"
+              "SimCaloHit %s\n"
               "EventNum=%d, SubDetector=%s\n"
               "Hit Energy = %.3e keV ~ %.3e Mip, Thresh = %3.e keV\n"
               "MCPID = %d, MCenergy = %.3f\n "
@@ -806,33 +808,113 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
                    10 * HitY, 10 * HitZ));
         }
       }
-      
-      // Store SimCalorimeterHit box for later updates
-      if (isSimHit) {
-        SimCalorimeterHit* hit =
-            dynamic_cast<SimCalorimeterHit*>(col->getElementAt(i));
-        std::cout << "add calo hit" << hit << std::endl;
-        gGUIManager._SimCaloHitBoxes[hit] = q;
-      }
-      
+
       cal->AddElement(q);
     }
   }
 
-  /*
-     TEveBox * calicesdhcal = new TEveBox;
-     TVector3 geoscale, geopos;
-     geoscale.SetXYZ(100,100,100);
-     geopos.SetXYZ(0, 0, 0);
-     calicesdhcal = BoxPhi(geopos, geoscale, -1, 0, 20);
-  //calicesdhcal->SetTransparency(70);
-
-  cal->AddElement(calicesdhcal);
-  */
-
   cout << "OriCoSize " << OriginColor.size() << ", " << mothercol << endl;
 
   return cal;
+}
+
+// type 0: barrel
+// type 1: endcap
+// caloType: 0: ECAL, 1: HCAL
+TEveBox *createSimCaloHitBox(SimCalorimeterHit *hit, float MIPS, int type, int caloType)
+{
+    float hitEnergy = hit->getEnergy();
+    TVector3 hitPos;
+    hitPos.SetX(hit->getPosition()[0] / 10.0);
+    hitPos.SetY(hit->getPosition()[1] / 10.0);
+    hitPos.SetZ(hit->getPosition()[2]/ 10.0);
+
+    float scale = std::log10(10 + 10*MIPS);
+    float base_cell_size = 5.0 / 10;
+    if (caloType == 0)
+    { // ECAL
+        base_cell_size = 5.0 / 10;
+    }
+    else if (caloType == 1)
+    { // HCAL
+        base_cell_size = 20.0 / 10;
+    }
+
+    float cell_size = base_cell_size * scale;
+    
+    // Scale XY by energy, but keep Z (thickness) reasonable
+    TVector3 Scale(cell_size, cell_size, 0.1 * cell_size);
+
+    TEveBox *q = new TEveBox();
+    q->SetName(Form("HitE = %.3e MeV", hitEnergy * 1000));
+
+    gStyle->SetPalette(1, 0);
+    q->SetMainTransparency(60);
+
+
+    float HitX = hitPos(0);
+    float HitY = hitPos(1);
+    float HitZ = hitPos(2);
+
+    float s1X = 0;
+    float s1Y = 0;
+    float s1Z = 0;
+    float s2X = 0;
+    float s2Y = 0;
+    float s2Z = 0;
+
+    float phiAngle = std::atan2(HitY, HitX);
+    float SX = 0;
+    float SY = 0;
+    float SZ = 0;
+    float SX1 = 0;
+    float SY1 = 0;
+    float SZ1 = 0;
+
+    if (type == 1) // Based on EndCap
+    {
+        s1X = -1 * Scale(0) / 2.0;
+        s2X = -1 * s1X;
+        s1Y = -1 * Scale(1) / 2.0;
+        s2Y = s1Y;  // Same sign for endcap boxes
+        s1Z = Scale(2) / 2.0;
+        s2Z = s1Z;
+
+        SX = fabs(0.5 * Scale(0));
+        SY = fabs(0.5 * Scale(1));
+        SZ = fabs(0.5 * Scale(2));
+        SX1 = SX;
+        SY1 = SY;
+        SZ1 = SZ;
+    } else { // Barrel type
+        s1X = -0.5 * (Scale(0) * sin(phiAngle) + Scale(2) * cos(phiAngle));
+        s1Y = 0.5 * (Scale(0) * cos(phiAngle) - Scale(2) * sin(phiAngle));
+        s2X = -0.5 * (Scale(0) * sin(phiAngle) - Scale(2) * cos(phiAngle));
+        s2Y = 0.5 * (Scale(0) * cos(phiAngle) + Scale(2) * sin(phiAngle));
+        s1Z = Scale(1) / 2.0;
+        s2Z = s1Z;
+
+        SX = fabs(0.5 * (Scale(0) * sin(phiAngle) + Scale(2) * cos(phiAngle)));
+        SX1 = fabs(0.5 * (Scale(0) * sin(phiAngle) - Scale(2) * cos(phiAngle)));
+        SY = fabs(0.5 * (Scale(0) * cos(phiAngle) - Scale(2) * sin(phiAngle)));
+        SY1 = fabs(0.5 * (Scale(0) * cos(phiAngle) + Scale(2) * sin(phiAngle)));
+        SZ = fabs(0.5 * Scale(1));
+        SZ1 = SZ;
+    }
+
+    q->SetVertex(5, HitX + s2X, HitY + s2Y, HitZ - s1Z);
+    q->SetVertex(6, HitX + s2X, HitY + s2Y, HitZ + s1Z);
+
+    q->SetVertex(4, HitX + s1X, HitY + s1Y, HitZ - s1Z);
+    q->SetVertex(7, HitX + s1X, HitY + s1Y, HitZ + s1Z);
+
+    q->SetVertex(3, HitX - s2X, HitY - s2Y, HitZ + s1Z);
+    q->SetVertex(0, HitX - s2X, HitY - s2Y, HitZ - s1Z);
+
+    q->SetVertex(2, HitX - s1X, HitY - s1Y, HitZ + s1Z);
+    q->SetVertex(1, HitX - s1X, HitY - s1Y, HitZ - s1Z);
+
+    return q;
 }
 
 TEveBox* BoxPhi(TVector3& HitPos, TVector3& Scale, int Type,
@@ -843,7 +925,7 @@ TEveBox* BoxPhi(TVector3& HitPos, TVector3& Scale, int Type,
   // Type = 2; Barrel, Based On Segment Number, ultilized for SID ECAL
 
   TEveBox* q = new TEveBox();
-  q->SetName(Form("HitE = %.3e MeV", HitEnergy * 1000));
+  q->SetName(Form("HitE = %.3e MeV, type = %d", HitEnergy * 1000, Type));
 
   gStyle->SetPalette(1, 0);
   q->SetMainTransparency(60);
@@ -1077,74 +1159,4 @@ TVector3 GetAhcalHitPos(int layer_ID, int chip_ID, int channel_ID) {
   pos.SetY(-(-_Pos_X[channel_ID] + (HBU_ID - 1) * HBU_X));
   pos.SetZ(layer_ID * HBU_Z);
   return pos;
-}
-
-// Function to update SimCalorimeterHit colors to match MCParticle visibility and colors
-void UpdateHitColorsToMatchMCParticles() {
-    std::cout << "Updating SimCalorimeterHit colors to match MCParticle visibility..." << std::endl;
-    
-    int updatedCount = 0;
-    int grayCount = 0;
-    
-    // Iterate through all stored SimCalorimeterHit boxes
-    for (auto& hitBox : gGUIManager._SimCaloHitBoxes) {
-        EVENT::SimCalorimeterHit* hit = hitBox.first;
-        TEveBox* box = hitBox.second;
-        
-        std::cout << "Processing hit: " << hit << ", box: " << box << std::endl;
-        if (!hit || !box) continue;
-        
-        // Get the main MCParticle for this hit
-        EVENT::MCParticle* mainMCP = gTruthHelper.GetMainMCP(hit);
-        bool mcpIsVisible = false;
-        int newColor = kGray;
-
-        std::cout << "Main MCP for hit " << hit << ": " << mainMCP << std::endl;
-        
-        if (mainMCP && gGUIManager._MCPTracks.find(mainMCP) != gGUIManager._MCPTracks.end()) {
-            TEveTrack* track = gGUIManager._MCPTracks[mainMCP];
-            
-            // Check if the track is visible
-            bool trackVisible = track && track->GetRnrSelf();
-            
-            // Check if the particle's group is showing
-            bool groupVisible = true;
-            auto groupIt = gGUIManager._MCPGroups.find(mainMCP);
-            if (groupIt != gGUIManager._MCPGroups.end()) {
-                TEveElement* group = groupIt->second;
-                if (group) {
-                    groupVisible = group->GetRnrSelf() && group->GetRnrChildren();
-                    std::cout << "group self visible: " << group->GetRnrSelf()
-                              << ", children visible: " << group->GetRnrChildren() << std::endl;
-                }
-            }
-            
-            if (trackVisible && groupVisible) {
-                mcpIsVisible = true;
-                // Use the same color as the MCParticle track
-                newColor = track->GetLineColor();                
-                std::cout << "MCP is visible. Using track color: " << newColor << std::endl;
-            }
-        }
-        
-        if (!mcpIsVisible) {
-            newColor = kGray;
-            grayCount++;
-        } else {
-            updatedCount++;
-        }
-        
-        // Update the box color
-        box->SetMainColor(newColor);
-        box->SetMainAlpha(0.8);
-        box->SetLineColor(newColor);
-    }
-    
-    std::cout << "Updated " << updatedCount << " hits to match MCParticle colors, " 
-              << grayCount << " hits set to gray" << std::endl;
-    
-    // Redraw without resetting camera view
-    if (gEve) {
-        gEve->Redraw3D(kFALSE);
-    }
 }

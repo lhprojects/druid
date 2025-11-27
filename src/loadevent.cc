@@ -206,7 +206,6 @@ void load_event(int EventNum) {
                << endl;
 
           // Reset truth helper when loading new event
-          gTruthHelper.ResetMCTruth(evt);
 
           load_collections(evt, "");
 
@@ -372,11 +371,20 @@ void load_collections(LCEvent* evt, string coltype) {
             gMultiView->ImportEventRPhi(gGUIManager._MCPList);
             gMultiView->ImportEventRhoZ(gGUIManager._MCPList);
         }
+        gTruthHelper.m_MCPCollNames = MCPartCollNames;
+        
+        for(std::string const &name : MCPartCollNames)
+        {
+            std::cout << " MCParticle collection for TruthHelper: " << name << std::endl;
+        }
+        gTruthHelper.ResetMCTruth(evt);
     }
 
     if (coltype == "" || coltype == LCIO::SIMCALORIMETERHIT)
     {
         gGUIManager._SimCaloHitBoxes.clear();
+        gGUIManager._SimCaloHitType.clear();
+        gGUIManager.m_CollNames.clear();
     }
 
     for (std::string const &collName : collNames) {
@@ -434,7 +442,7 @@ void load_collections(LCEvent* evt, string coltype) {
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::SIMCALORIMETERHIT) {
-        TEveElementList* temp = CaloHits(col, collName);
+        TEveElementList* temp = createSimCaloHits(col, collName);
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::TRACKERHIT) {

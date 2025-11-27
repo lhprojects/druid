@@ -20,6 +20,27 @@
 #include "EVENT/LCEvent.h"
 #include <string>
 #include <vector>
+#include <cctype>
+
+// String utility functions
+// Helper function to check if string starts with a prefix
+inline bool starts_with(const std::string& str, const std::string& prefix) {
+    return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
+}
+
+// Helper function to check if string contains a substring
+inline bool contains(const std::string& str, const std::string& substr) {
+    return str.find(substr) != std::string::npos;
+}
+
+// Helper function to convert string to lowercase
+inline std::string to_lower(const std::string& str) {
+    std::string result = str;
+    for (size_t i = 0; i < result.length(); ++i) {
+        result[i] = std::tolower(static_cast<unsigned char>(result[i]));
+    }
+    return result;
+}
 
 // Forward declarations
 class EventNavigator;
@@ -40,7 +61,11 @@ struct GUIManager
     std::map<EVENT::MCParticle*, TEveElement*> _MCPGroups;
     std::map<EVENT::MCParticle*, bool> _MCPShowing;
     std::map<std::string, int> _MCParticleDisplayFlag;
-    std::map<EVENT::SimCalorimeterHit*, TEveBox*> _SimCaloHitBoxes;
+
+
+    std::map<TEveBox*, EVENT::SimCalorimeterHit*> _SimCaloHitBoxes;
+    std::vector<std::string> m_CollNames;
+    std::map<TEveBox*, int> _SimCaloHitType;
 
     int HitColourType = 0;
     int PFOHitColourType = 0;
@@ -123,6 +148,9 @@ class LCCollection;
 
 void load_collections(LCEvent* evt, std::string coltype);
 
+
+typedef EVENT::MCParticle MCParticle;
+TEveElementList* createSimCaloHits(LCCollection* col, std::string name);
 TEveElementList* CaloHits( LCCollection* col, std::string hh);
 TEveElementList* TrackerHits( LCCollection* col, std::string hh);
 TEveElementList* TrackAssignedHits( LCCollection* col, std::string hh );
@@ -133,6 +161,8 @@ TEveElementList* BuildPFOs( LCCollection* col, std::string hh);
 TEveCompound* ConnectTrees( LCCollection* col, std::string hh );
 TEveCompound* RecoJets( LCCollection* col, std::string name);
 TEveBox* BoxPhi( TVector3 &HitPos, TVector3 &Scale, int Type, int SegOrStaveNumber, float HitEnergy );
+TEveBox* createBox( TVector3 &HitPos, TVector3 &Scale, int Type, int SegOrStaveNumber, float HitEnergy );
+
 
 //------------------ For Prototype ------------------
 TVector3 GetScEcalHitPos(int LayerIDs, int ChipIDs, int ChannelIDs);

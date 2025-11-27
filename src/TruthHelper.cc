@@ -8,21 +8,33 @@
 using namespace MLPFA;
 
 MLDataReader_LCIO mlpfa_reader;
+
 MLInputData gMLPFAInputData;
 MLPFA::MLMetaData gMLPFAMetaData;
 PFAA::LCIOData gLCIOData;
-std::map<EVENT::Cluster*, EVENT::MCParticle*> mainMCParticles;
 
+std::map<EVENT::Cluster*, EVENT::MCParticle*> mainMCParticles;
 // in PFAA, I didnot record information of this level yet
 std::map<EVENT::SimCalorimeterHit *, EVENT::MCParticle* > simCaloHitMainMCP;
+std::map<EVENT::MCParticle*, MLMCPart*> mcpartIDs;
+
+
 TruthHelper gTruthHelper;
 
 void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
 {
+    gMLPFAInputData.reset();
+    gMLPFAMetaData.reset();
+    gLCIOData.clear();
+
     simCaloHitMainMCP.clear();
     mainMCParticles.clear();
+    mcpartIDs.clear();
+
 
     MLPFA::MLGeom::instance().setBField(gOptions.BField);
+    mlpfa_reader.m_MCParticleCollectionNames = m_MCPCollNames;
+
     mlpfa_reader.fillInputData(evt, gLCIOData, gMLPFAInputData, gMLPFAMetaData);
 
     for(int iobj = 0; iobj < gMLPFAInputData.m_objects.size(); ++iobj)
@@ -44,7 +56,32 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     {
         EVENT::LCRelation *rel = gLCIOData.m_caloHitLinks[ilink];
     }
+
+    std::cout << " gLCIOData.m_mcParts.size()" << gLCIOData.m_mcParts.size() << std::endl;
+    std::cout << " gLCIOData.m_mcParts.size()" << gLCIOData.m_mcParts.size() << std::endl;
+    std::cout << " gLCIOData.m_mcParts.size()" << gLCIOData.m_mcParts.size() << std::endl;
+    std::cout << " gLCIOData.m_mcParts.size()" << gLCIOData.m_mcParts.size() << std::endl;
+    std::cout << " gLCIOData.m_mcParts.size()" << gLCIOData.m_mcParts.size() << std::endl;
+    for(int ipart = 0; ipart < gLCIOData.m_mcParts.size(); ++ipart)
+    {
+        EVENT::MCParticle *mcPart = ML_at(gLCIOData.m_mcParts, ipart);
+        MLMCPart *mlPart = ML_at(gMLPFAInputData.m_MCParts, ipart);
+        mcpartIDs[mcPart] = mlPart;
+    }
 }
+
+std::string TruthHelper::GetStringID(EVENT::MCParticle *mcp)
+{
+    if(mcp == nullptr) {
+        return "MCP@Null";
+    }
+    auto iter = mcpartIDs.find(mcp);
+    if(iter ==  mcpartIDs.end()) {
+        return "MCP@Unknown";
+    }
+    return iter->second->getStringID();
+}
+
 EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::CalorimeterHit *caloHit)
 {
     return nullptr;
