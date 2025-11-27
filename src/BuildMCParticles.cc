@@ -30,6 +30,7 @@
 #include "Options.h"
 #include "GlobalDefs.hh"
 #include "EventNavigator.hh"
+#include "TruthHelper.h"
 
 using namespace lcio;
 using namespace EVENT;
@@ -86,7 +87,6 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 		gGUIManager._MCPList = nullptr;
 	}
 
-	std::cout<<"  "<<endl;
 	std::cout<<"  Start to build MC Tracks collection: "<<endl;
 
 	TEveElementList  *MCTracks = new TEveElementList();
@@ -494,27 +494,29 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 				}
 
 				if(track){
-					track->SetName(Form("Track %d", i));    // i = tracknum
+					track->SetName(Form("%s", gTruthHelper.GetStringID(part).c_str()));
 					track->SetLineWidth(MCTParams[TrType].Width);
 					track->SetLineColor(MCTParams[TrType].Color);
 					track->SetLineStyle(MCTParams[TrType].Style);
 					track->SetSmooth(kTRUE);
 					if(PID == 22){
-						track->SetTitle(Form("MCParticles: \n"
-									"EventNr=%d, Track No.=%d\n""Charge=%.3f, PID=%d, Energy=%.3f\n"
+						track->SetTitle(Form("%s\n"
+									"Charge=%.3f, PID=%d, Energy=%.3f\n"
 									"(Vx, Vy, Vz) = (%.3f, %.3f, %.3f)\n"
 									"(Ex, Ey, Ez) = (%.3f, %.3f, %.3f)\n"
 									"(Px, Py, Pz) = (%.3f, %.3f, %.3f)\n"
 									"MotherPID = %d, MotherEnergy = %.3f",
-									EventNr, i, charge, PID, energy,
+									gTruthHelper.GetStringID(part).c_str(),
+									charge, PID, energy,
 									Vx, Vy, Vz, Ex, Ey, Ez, px, py, pz, MotherPID, MotherEnergy));
 					}else{
-						track->SetTitle(Form("MCParticles: \n"
-									"EventNr=%d, Track No.=%d\n""Charge=%.3f, PID=%d, Energy=%.3f\n"
+						track->SetTitle(Form("%s\n"
+									"Charge=%.3f, PID=%d, Energy=%.3f\n"
 									"(Vx, Vy, Vz) = (%.3f, %.3f, %.3f)\n"
 									"(Ex, Ey, Ez) = (%.3f, %.3f, %.3f)\n"
 									"(Px, Py, Pz) = (%.3f, %.3f, %.3f)\n",
-									EventNr, i, charge, PID, energy,
+									gTruthHelper.GetStringID(part).c_str(),
+									charge, PID, energy,
 									Vx, Vy, Vz, Ex, Ey, Ez, px, py, pz));
 				}
 				if ( currCompound ) {

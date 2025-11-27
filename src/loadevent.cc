@@ -362,10 +362,6 @@ void load_collections(LCEvent* evt, string coltype) {
             }
         }
 
-        // Always rebuild MCParticles (unconditionally)
-        gGUIManager._MCPList = BuildMCParticles(evt, MCPartCollNames);
-        gEve->AddElement(gGUIManager._MCPList);
-
         if (FlagMultiView)
         {
             gMultiView->ImportEventRPhi(gGUIManager._MCPList);
@@ -378,6 +374,9 @@ void load_collections(LCEvent* evt, string coltype) {
             std::cout << " MCParticle collection for TruthHelper: " << name << std::endl;
         }
         gTruthHelper.ResetMCTruth(evt);
+        
+        gGUIManager._MCPList = BuildMCParticles(evt, MCPartCollNames);
+        gEve->AddElement(gGUIManager._MCPList);
     }
 
     if (coltype == "" || coltype == LCIO::SIMCALORIMETERHIT)
