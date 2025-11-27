@@ -331,3 +331,42 @@ void BuildGeoGDMLRoot(std::string gdmlroot){
 	}
 }
 
+// Draw a hollow cylinder representing the TPC
+void DrawTPCCylinder(double innerRadius, double outerRadius, double halfZ) {
+	if (innerRadius <= 0 || outerRadius <= 0 || halfZ <= 0) {
+		std::cout << "Invalid TPC dimensions. Skipping TPC cylinder drawing." << std::endl;
+		return;
+	}
+
+	std::cout << "Drawing TPC cylinder: innerR=" << innerRadius 
+	          << ", outerR=" << outerRadius 
+	          << ", halfZ=" << halfZ << std::endl;
+
+	// Create inner cylinder (transparent)
+	TGeoTube* innerTube = new TGeoTube("TPCInner", innerRadius/10.0, innerRadius/10.0 + 0.1, halfZ/10.0);
+	TEveGeoShape* innerShape = new TEveGeoShape("TPC Inner Radius");
+	innerShape->SetShape(innerTube);
+	innerShape->SetMainColor(kBlue);
+	innerShape->SetMainTransparency(80);
+	innerShape->SetLineColor(kBlue);
+	innerShape->SetLineWidth(2);
+	gEve->AddGlobalElement(innerShape);
+
+	// Create outer cylinder (transparent)
+	TGeoTube* outerTube = new TGeoTube("TPCOuter", outerRadius/10.0 - 0.1, outerRadius/10.0, halfZ/10.0);
+	TEveGeoShape* outerShape = new TEveGeoShape("TPC Outer Radius");
+	outerShape->SetShape(outerTube);
+	outerShape->SetMainColor(kRed);
+	outerShape->SetMainTransparency(80);
+	outerShape->SetLineColor(kRed);
+	outerShape->SetLineWidth(2);
+	gEve->AddGlobalElement(outerShape);
+
+	if (FlagMultiView && gMultiView) {
+		gMultiView->ImportGeomRPhi(innerShape);
+		gMultiView->ImportGeomRhoZ(innerShape);
+		gMultiView->ImportGeomRPhi(outerShape);
+		gMultiView->ImportGeomRhoZ(outerShape);
+	}
+}
+

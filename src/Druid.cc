@@ -256,6 +256,14 @@ int main(int argc, char *argv[])
 		std::cout<<" Gear Geometry is no longer supporting since Druid 2.0! Please use gdml root file"<<std::endl;
 	}
 
+	// Draw TPC cylinder if option is enabled and dimensions are provided
+	if (gOptions.draw_tpc_cylinder && 
+	    gOptions.tpc_innerRadius > 0 && 
+	    gOptions.tpc_outerRadius > 0 && 
+	    gOptions.tpc_halfZ > 0) {
+		DrawTPCCylinder(gOptions.tpc_innerRadius, gOptions.tpc_outerRadius, gOptions.tpc_halfZ);
+	}
+
 	gEve->FullRedraw3D(kTRUE);
 
 	theApp->Run();

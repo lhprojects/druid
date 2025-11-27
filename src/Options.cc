@@ -117,6 +117,7 @@ void Options::parse(int &argc, char** &argv) {
     tpc_innerRadius = -1.0;  // negative means not set, use default from geometry
     tpc_outerRadius = -1.0;
     tpc_halfZ = -1.0;
+    draw_tpc_cylinder = false;
     printHelp=false;
     printVersion=false;
 
@@ -128,6 +129,7 @@ void Options::parse(int &argc, char** &argv) {
         } else if(read_double(argc, argv, i, "-tpc.innerRadius", tpc_innerRadius)) {
         } else if(read_double(argc, argv, i, "-tpc.outerRadius", tpc_outerRadius)) {
         } else if(read_double(argc, argv, i, "-tpc.halfZ", tpc_halfZ)) {
+        } else if (read_bool(argc, argv, i, "-draw.tpc.cylinder", draw_tpc_cylinder)) {
         } else if (read_bool(argc, argv, i, "-h", printHelp)) {
         } else if (read_bool(argc, argv, i, "-v", printVersion)) {
         } else if(add_string(argc, argv, i, "-coll.caloHit.filterOutSuffix", coll_caloHit_filterOutSuffixes))  {

@@ -15,6 +15,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
  -tpc.innerRadius 330.0 \
  -tpc.outerRadius 1700.0 \
  -tpc.halfZ 2350.0 \
+ -draw.tpc.cylinder \
  "$@"
- 
+
 

@@ -128,6 +128,7 @@ bool IsNeutrino(int PID);
 #include "Rtypes.h"
 
 void BuildGeoGDMLRoot(std::string gdmlroot);
+void DrawTPCCylinder(double innerRadius, double outerRadius, double halfZ);
 void make_gui();
 void load_event(int EventNum);
 
