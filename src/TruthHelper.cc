@@ -1,4 +1,5 @@
 #include "TruthHelper.h"
+#include "GlobalDefs.hh"
 #include "EVENT/CalorimeterHit.h"
 #include "EVENT/SimCalorimeterHit.h"
 #include "EVENT/SimTrackerHit.h"
@@ -10,6 +11,8 @@
 #include <algorithm>
 #include <MLPFA/LCIO_MLPFA.h>
 #include "Options.h"
+#include "PFAA/JERDInternal.h"
+
 using namespace MLPFA;
 
 MLDataReader_LCIO mlpfa_reader;
@@ -17,11 +20,13 @@ MLDataReader_LCIO mlpfa_reader;
 MLInputData gMLPFAInputData;
 MLPFA::MLMetaData gMLPFAMetaData;
 PFAA::LCIOData gLCIOData;
+PFAA::MCTruth_Ans mcTruthAns;
 
 std::map<EVENT::Cluster*, EVENT::MCParticle*> mainMCParticles;
 // in PFAA, I didnot record information of this level yet
 std::map<EVENT::SimCalorimeterHit *, EVENT::MCParticle* > simCaloHitMainMCP;
 std::map<EVENT::CalorimeterHit *, EVENT::MCParticle* > caloHitMainMCP;
+std::map<EVENT::Track *, EVENT::MCParticle* > trackMainMCP;
 std::map<EVENT::MCParticle*, MLMCPart*> mcpartIDs;
 std::map<EVENT::CalorimeterHit*, EVENT::SimCalorimeterHit *> caloHitSimCaloHitMap;
 
@@ -36,6 +41,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
 
     simCaloHitMainMCP.clear();
     caloHitMainMCP.clear();
+    trackMainMCP.clear();
     mainMCParticles.clear();
     mcpartIDs.clear();
     caloHitSimCaloHitMap.clear();
@@ -43,6 +49,8 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
 
 
     MLPFA::MLGeom::instance().setBField(gOptions.BField);
+
+    PFAA::setLogLevel(PFAA::LOG_DEBUG1 | PFAA::LOG_DEBUG2);
     
     // Set TPC geometry if provided via command line options
     if (gOptions.tpc_innerRadius > 0) {
@@ -54,11 +62,28 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     
     mlpfa_reader.m_MCParticleCollectionNames = m_MCPCollNames;
     
+    // Get collection names from the event
+    const std::vector<std::string> *collNames = evt->getCollectionNames();
+    
+    // Set up track collection names using the helper function
+    mlpfa_reader.m_TrackCollectionNames = get_track_collections_to_use(evt);
+    for(std::string const &name : mlpfa_reader.m_TrackCollectionNames)
+    {
+        try
+        {
+            EVENT::LCCollection *col = evt->getCollection(name);
+            std::cout << "Found Track collection: " << name << " with " 
+                      << col->getNumberOfElements() << " tracks" << std::endl;
+        }
+        catch(...) {}
+    }
+    
     // Set up relation collection names for CaloHit-SimCaloHit links
-    mlpfa_reader.m_RelCaloHitCollectionNames.clear();
+    mlpfa_reader.m_RelCaloHitCollectionNames.clear();    
+    // Set up relation collection names for TrackerHit-SimTrackerHit links
+    mlpfa_reader.m_RelTrackCollectionNames.clear();
     
     // Try to find calorimeter relation collections in the event
-    const std::vector<std::string> *collNames = evt->getCollectionNames();
     for(std::string const &name : *collNames)
     {
         try
@@ -79,13 +104,25 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
                         mlpfa_reader.m_RelCaloHitCollectionNames.push_back(name);
                         std::cout << "Found CaloHit-SimCaloHit relation collection: " << name << std::endl;
                     }
+                    else
+                    {
+                        // Try TrackerHit-SimTrackerHit relation
+                        EVENT::TrackerHit *trackerHit = dynamic_cast<EVENT::TrackerHit*>(rel->getFrom());
+                        EVENT::SimTrackerHit *simTrackerHit = dynamic_cast<EVENT::SimTrackerHit*>(rel->getTo());
+                        
+                        if(trackerHit && simTrackerHit)
+                        {
+                            mlpfa_reader.m_RelTrackCollectionNames.push_back(name);
+                            std::cout << "Found TrackerHit-SimTrackerHit relation collection: " << name << std::endl;
+                        }
+                    }
                 }
             }
         }
         catch(...) {}
     }
 
-    mlpfa_reader.fillInputData(evt, gLCIOData, gMLPFAInputData, gMLPFAMetaData);
+    mlpfa_reader.fillInputData(evt, gLCIOData, mcTruthAns, gMLPFAInputData, gMLPFAMetaData);
 
     for(int iobj = 0; iobj < gMLPFAInputData.m_objects.size(); ++iobj)
     {
@@ -120,6 +157,17 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         EVENT::MCParticle *mcPart = ML_at(gLCIOData.m_mcParts, ipart);
         MLMCPart *mlPart = ML_at(gMLPFAInputData.m_MCParts, ipart);
         mcpartIDs[mcPart] = mlPart;
+    }
+
+    for (auto &pair : mcTruthAns.m_track2MainPart)
+    {
+        PFAA::Track *track = pair.first;
+        PFAA::MCPart *mcp = pair.second;
+        int index = mcp->getIndex();
+        int trackIndex = track->getIndex();
+        EVENT::MCParticle *mcPart = ML_at(gLCIOData.m_mcParts, index);
+        EVENT::Track *lcTrack =  ML_at(gLCIOData.m_tracks, trackIndex);
+        trackMainMCP[lcTrack] = mcPart;
     }
 
     // Read all SimTrackerHit collections and organize by MCParticle
@@ -169,11 +217,6 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     {
         std::vector<TrackerHitInfo> &hits = pair.second;
         bool debug = false;
-        if (mcpartIDs[pair.first] && mcpartIDs[pair.first]->getIndexInCollection() == 33)
-        {
-            debug = true;
-            std::cout << "MCParticle index " << GetStringID(pair.first) << " has " << hits.size() << " SimTrackerHits before organizing." << std::endl;
-        }
 
         std::sort(hits.begin(), hits.end(), 
                   [](const TrackerHitInfo &a, const TrackerHitInfo &b) { return a.time < b.time; });
@@ -235,8 +278,10 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
                     }
                     else
                     {
-                        std::cout << "  Ignoring segment with only " << currentSegment.size() 
-                                  << " hits (< " << minSegmentSize << ")" << std::endl;
+                        if(debug) {
+                            std::cout << "  Ignoring segment with only " << currentSegment.size() 
+                                    << " hits (< " << minSegmentSize << ")" << std::endl;
+                        }
                     }
                     // Start new segment - will be empty and checked on next iteration
                     currentSegment.clear();
@@ -368,6 +413,18 @@ EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::SimCalorimeterHit *caloHit)
 EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::Cluster *cluster)
 {
     return mainMCParticles[cluster];    
+}
+
+EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::Track *track)
+{
+    if(!track) return nullptr;
+    
+    // Check cache first
+    if(trackMainMCP.find(track) != trackMainMCP.end())
+    {
+        return trackMainMCP[track];
+    }    
+    return nullptr;
 }
 
 const std::vector<TrackerHitInfo>& TruthHelper::GetTrackerHits(EVENT::MCParticle *mcp)

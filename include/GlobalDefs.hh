@@ -18,6 +18,7 @@
 #include "EVENT/SimCalorimeterHit.h"
 #include "EVENT/CalorimeterHit.h"
 #include "EVENT/MCParticle.h"
+#include "EVENT/Track.h"
 #include "EVENT/LCEvent.h"
 #include <string>
 #include <vector>
@@ -63,6 +64,7 @@ struct GUIManager
     std::map<EVENT::MCParticle*, bool> _MCPShowing;
     std::map<std::string, int> _MCParticleDisplayFlag;
 
+    std::map<EVENT::Track*, TEveTrack*> _RecoTracks;  // Map from EVENT::Track to TEveTrack
 
     std::map<TEveBox*, EVENT::SimCalorimeterHit*> _SimCaloHitBoxes;
     std::map<TEveBox*, EVENT::CalorimeterHit*> _CaloHitBoxes;
@@ -87,6 +89,9 @@ extern EventNavigator gEventNavigator;
 
 // Function to update SimCalorimeterHit colors to match MCParticle visibility and colors
 void UpdateHitColorsToMatchMCParticles();
+
+// Function to update Track colors to match MCParticle colors
+void UpdateTrackColorsByMCParticle();
 
 
 struct DisplayState
@@ -174,5 +179,7 @@ TEveBox* createBox( TVector3 &HitPos, TVector3 &Scale, int Type, int SegOrStaveN
 TVector3 GetScEcalHitPos(int LayerIDs, int ChipIDs, int ChannelIDs);
 TVector3 GetAhcalHitPos(int LayerIDs, int ChipIDs, int ChannelIDs);
 
+// Get track collection names to use: either from command line or all track collections from event
+std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt);
 
 #endif //GLOBALDEFS_H_

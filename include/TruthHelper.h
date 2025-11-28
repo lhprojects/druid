@@ -6,6 +6,7 @@
 #include "EVENT/CalorimeterHit.h"
 #include "EVENT/SimCalorimeterHit.h"
 #include "EVENT/SimTrackerHit.h"
+#include "EVENT/Track.h"
 #include "EVENT/LCEvent.h"
 #include <vector>
 #include <map>
@@ -31,6 +32,7 @@ struct TruthHelper
     EVENT::MCParticle *GetMainMCP(EVENT::Cluster *cluster);
     EVENT::MCParticle *GetMainMCP(EVENT::CalorimeterHit *caloHit);
     EVENT::MCParticle *GetMainMCP(EVENT::SimCalorimeterHit *caloHit);
+    EVENT::MCParticle *GetMainMCP(EVENT::Track *track);
 
     std::string GetStringID(EVENT::MCParticle *mcp);
 

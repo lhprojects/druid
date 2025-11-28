@@ -252,6 +252,59 @@ void load_event(int EventNum) {
   }
 }
 
+void loadTracks(LCEvent *evt, string coltype)
+{
+    gGUIManager._RecoTracks.clear();
+
+    std::map<string, int> DisplayFlag;
+    bool Draw = true;
+    bool ChildDraw = true;
+    
+    if (collectionClasses.find(coltype) != collectionClasses.end() &&
+        collectionClasses[coltype])
+    {
+        Draw = collectionClasses[coltype]->GetRnrSelf();
+        ChildDraw = collectionClasses[coltype]->GetRnrChildren();
+        for (TEveElement::List_i itt = collectionClasses[coltype]->BeginChildren();
+             itt != collectionClasses[coltype]->EndChildren(); itt++)
+        {
+            std::string colname = (*itt)->GetElementName();
+            if (DisplayFlag.find(colname) == DisplayFlag.end())
+            {
+                DisplayFlag[colname] = (*itt)->GetRnrSelf();
+            }
+        }
+        collectionClasses[coltype]->DestroyElements();
+        collectionClasses[coltype]->Destroy();
+    }
+    
+    collectionClasses[coltype] = new TEveElementList();
+    collectionClasses[coltype]->SetRnrSelfChildren(Draw, ChildDraw);
+    collectionClasses[coltype]->SetRnrSelf(Draw);
+    collectionClasses[coltype]->SetName(coltype.c_str());
+
+    // Get track collections to use from helper function
+    std::vector<std::string> trackCollNames = get_track_collections_to_use(evt);
+    
+    for (std::string const &collName : trackCollNames)
+    {
+        LCCollection *col = nullptr;
+        try
+        {
+            col = evt->getCollection(collName);
+        }
+        catch(...) {}
+        TEveElementList *temp = BuildTracks(col, collName);
+        if (temp)
+        {
+            bool FlagDraw = DisplayFlag.find(collName) != DisplayFlag.end() ? DisplayFlag[collName] : true;
+            temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
+            collectionClasses[coltype]->AddElement(temp);
+        }
+    }
+    UpdateTrackColorsByMCParticle();
+}
+
 void load_collections(LCEvent* evt, string coltype) {
   if (flagslcio) {
     // collection types we do not draw explicitly for the moment...
@@ -272,6 +325,7 @@ void load_collections(LCEvent* evt, string coltype) {
         ignoredTypes.push_back(LCIO::CALORIMETERHIT);
       }
     }
+
 
     bool Draw = true;
     bool ChildDraw = true;
@@ -391,6 +445,7 @@ void load_collections(LCEvent* evt, string coltype) {
         gGUIManager._CaloHitType.clear();
         gGUIManager.m_CaloHitCollNames.clear();
     }
+    
 
     for (std::string const &collName : collNames) {
       LCCollection* col = evt->getCollection(collName);
@@ -466,11 +521,7 @@ void load_collections(LCEvent* evt, string coltype) {
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::TRACK) {
-        TEveElementList* temp = BuildTracks(col, collName);
-        if (temp) {
-          temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
-          collectionClasses[ct]->AddElement(temp);
-        }
+        // Handled separately after all collections are scanned
       } else if (ct == LCIO::RECONSTRUCTEDPARTICLE) {
         if (collName == "PandoraPFOs" || collName == "PandoraPFANewPFOs" ||
             CollHead == "Arbor") {  // Supposed to be modified if user needed...
@@ -505,42 +556,7 @@ void load_collections(LCEvent* evt, string coltype) {
       }
     }
 
-    if (coltype == "") {
-      for (std::map<string, TEveElementList*>::iterator ff =
-               collectionClasses.begin();
-           ff != collectionClasses.end(); ff++) {
-        // std::cout<<ff->first<<std::endl;
-        if (ff->second) {
-          gEve->AddElement(ff->second);
-          if (FlagMultiView) {
-            gMultiView->ImportEventRPhi(ff->second);
-            gMultiView->ImportEventRhoZ(ff->second);
-          }
-        }
-      }
-    } else {
-      if (collectionClasses.find(coltype) != collectionClasses.end() &&
-          collectionClasses[coltype]) {
-        gEve->AddElement(collectionClasses[coltype]);
 
-        // Yuzhi Che: date 2023-06-03, try to add an overlay color palatte.
-        /*
-        cal_shell->Reset(TEveBoxSet::kBT_FreeBox, kFALSE, 64);
-        TGLViewer* v = gEve->GetDefaultGLViewer();
-        v->RemoveOverlayElement(&po);
-        p.SetupColorArray();
-        v->AddOverlayElement(&po);
-        v->UpdateScene();
-        */
-      }
-
-      // std::cout<<collectionClasses[coltype]<<std::endl;
-
-      if (FlagMultiView && collectionClasses[coltype]) {
-        gMultiView->ImportEventRPhi(collectionClasses[coltype]);
-        gMultiView->ImportEventRhoZ(collectionClasses[coltype]);
-      }
-    }
     
     // Update SimCalorimeterHit colors after ALL collections are loaded
     // Only for color scheme 7 (MCParticle colors)
@@ -548,10 +564,62 @@ void load_collections(LCEvent* evt, string coltype) {
         gGUIManager.HitColourType == 7) {
       UpdateHitColorsToMatchMCParticles();
     }
-  } else {
-    std::cout
-        << " Slcio data file is not available! skip loading event information. "
-        << std::endl;
+
+    if (coltype == "" || coltype == LCIO::TRACK)
+    {        
+        loadTracks(evt, LCIO::TRACK);
+    }
+
+    if (coltype == "")
+    {
+        for (std::map<string, TEveElementList *>::iterator ff =
+                 collectionClasses.begin();
+             ff != collectionClasses.end(); ff++)
+        {
+            // std::cout<<ff->first<<std::endl;
+            if (ff->second)
+            {
+                gEve->AddElement(ff->second);
+                if (FlagMultiView)
+                {
+                    gMultiView->ImportEventRPhi(ff->second);
+                    gMultiView->ImportEventRhoZ(ff->second);
+                }
+            }
+        }
+    }
+    else
+    {
+        if (collectionClasses.find(coltype) != collectionClasses.end() &&
+            collectionClasses[coltype])
+        {
+            gEve->AddElement(collectionClasses[coltype]);
+
+            // Yuzhi Che: date 2023-06-03, try to add an overlay color palatte.
+            /*
+            cal_shell->Reset(TEveBoxSet::kBT_FreeBox, kFALSE, 64);
+            TGLViewer* v = gEve->GetDefaultGLViewer();
+            v->RemoveOverlayElement(&po);
+            p.SetupColorArray();
+            v->AddOverlayElement(&po);
+            v->UpdateScene();
+            */
+        }
+
+        // std::cout<<collectionClasses[coltype]<<std::endl;
+
+        if (FlagMultiView && collectionClasses[coltype])
+        {
+            gMultiView->ImportEventRPhi(collectionClasses[coltype]);
+            gMultiView->ImportEventRhoZ(collectionClasses[coltype]);
+        }
+    }
+  }
+  else
+  {
+      std::cout
+          << " Slcio data file is not available! skip loading event information. "
+          << std::endl;
   }
 
   return;

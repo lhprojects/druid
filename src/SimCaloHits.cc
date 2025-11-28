@@ -122,7 +122,7 @@ TEveElementList *createSimCaloHits(LCCollection *col, string name)
     float SF = isSimHit ? 1.0 : 1.2; // Scale Factor
     float s1X, s1Y, s2X, s2Y;
 
-    cout << "  Calo hits collection : " << name << ". Number of Hits: " << nHits
+    cout << "  Sim Calo hits collection : " << name << ". Number of Hits: " << nHits
          << ", typeName:" << col->getTypeName() << endl;
     // cout << endl; Hao
 

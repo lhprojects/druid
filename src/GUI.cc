@@ -17,6 +17,7 @@
 
 #include "GlobalDefs.hh"
 #include "EventNavigator.hh"
+#include "Options.h"
 #include "TEveBrowser.h"
 #include "TGNumberEntry.h"
 #include "TGButton.h"
@@ -34,6 +35,35 @@ extern TEveManager * gEve;
 extern TSystem * gSystem;
 
 GUIManager gGUIManager;
+
+// Get track collection names to use: either from command line or all track collections from event
+std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt)
+{
+    std::vector<std::string> result;
+    
+    // If command line specifies track collections, use them unconditionally
+    if(!gOptions.coll_track_collections.empty())
+    {
+        return gOptions.coll_track_collections;
+    }
+    
+    // Otherwise, find all track collections in the event
+    const std::vector<std::string> *collNames = evt->getCollectionNames();
+    for(std::string const &name : *collNames)
+    {
+        try
+        {
+            EVENT::LCCollection *col = evt->getCollection(name);
+            if(col->getTypeName() == lcio::LCIO::TRACK && col->getNumberOfElements() > 0)
+            {
+                result.push_back(name);
+            }
+        }
+        catch(...) {}
+    }
+    
+    return result;
+}
 
 TGNumberEntry *_cellEnergyThrEntry;
 TGNumberEntry *_cellSizeEntry;

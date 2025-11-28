@@ -19,7 +19,9 @@
 #include "GlobalDefs.hh"
 #include "Options.h"
 #include "MLPFA/MLPFA.h"
+#include "TruthHelper.h"
 #include <iostream>
+#include <map>
 
 using namespace lcio;
 using namespace EVENT;
@@ -103,12 +105,11 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
         eveTrack->SetLineWidth(2);
         eveTrack->SetSmooth(kTRUE);
         
-        // Color based on charge
-        if(charge > 0) {
-            eveTrack->SetLineColor(kRed);
-        } else {
-            eveTrack->SetLineColor(kBlue);
-        }
+        // Set default color (will be updated by UpdateTrackColorsByMCParticle)
+        eveTrack->SetLineColor(kGray);
+        
+        // Store track in map for later color updates
+        gGUIManager._RecoTracks[track] = eveTrack;
 
         // Set track name and info
         eveTrack->SetName(Form("Track %d: p=%.2f GeV/c", i, momentum));
@@ -131,6 +132,63 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
 
     trackList->MakeTracks();  
     trackList->SetRnrSelfChildren(kTRUE, kTRUE);  
-
     return trackList;
+}
+
+// Function to update reconstructed Track colors to match MCParticle colors
+void UpdateTrackColorsByMCParticle() {
+    std::cout << "Updating reconstructed Track colors to match MCParticle colors..." << std::endl;
+    
+    int updatedCount = 0;
+    int grayCount = 0;
+    
+    // Iterate through all stored reconstructed tracks
+    for (auto& trackPair : gGUIManager._RecoTracks) {
+        EVENT::Track* track = trackPair.first;
+        TEveTrack* eveTrack = trackPair.second;
+        
+        if (!track || !eveTrack) continue;
+        
+        // Get the main MCParticle for this track
+        EVENT::MCParticle* mainMCP = gTruthHelper.GetMainMCP(track);
+        int newColor = kGray;
+        bool mcpIsVisible = false;
+        std::cout << "Track associated MCParticle: " 
+                  << (mainMCP ? gTruthHelper.GetStringID(mainMCP) : "None") << std::endl;
+        
+        if (mainMCP && gGUIManager._MCPTracks.find(mainMCP) != gGUIManager._MCPTracks.end()) {
+            TEveTrack* mcpTrack = gGUIManager._MCPTracks[mainMCP];
+            
+            // Check if the MCParticle track is visible
+            bool trackVisible = mcpTrack && mcpTrack->GetRnrSelf();
+            
+            // Check if the particle's group is showing
+            bool groupVisible = true;
+            auto groupIt = gGUIManager._MCPGroups.find(mainMCP);
+            if (groupIt != gGUIManager._MCPGroups.end()) {
+                TEveElement* group = groupIt->second;
+                if (group) {
+                    groupVisible = group->GetRnrSelf() && group->GetRnrChildren();
+                }
+            }
+            
+            if (trackVisible && groupVisible) {
+                mcpIsVisible = true;
+                // Use the same color as the MCParticle track
+                newColor = mcpTrack->GetLineColor();
+                updatedCount++;
+            }
+        }
+        
+        if (!mcpIsVisible) {
+            newColor = kGray;
+            grayCount++;
+        }
+        
+        // Update the track color
+        eveTrack->SetLineColor(newColor);
+    }
+    
+    std::cout << "Updated " << updatedCount << " tracks with MCP colors, " 
+              << grayCount << " tracks set to gray" << std::endl;
 }
