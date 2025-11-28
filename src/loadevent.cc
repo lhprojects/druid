@@ -266,7 +266,6 @@ void load_collections(LCEvent* evt, string coltype) {
     if (DefaultCollectionFlag) {  // Only Display Simulated Hits and
                                   // Reconstructed PFO (if exist)
       // ignoredTypes.push_back(LCIO::CLUSTER);
-      ignoredTypes.push_back(LCIO::TRACK);
       ignoredTypes.push_back(LCIO::VERTEX);
       ignoredTypes.push_back(LCIO::TRACKERHIT);
       if (flagdetectortype != 10) {
@@ -467,9 +466,11 @@ void load_collections(LCEvent* evt, string coltype) {
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::TRACK) {
-        TEveElementList* temp = TrackAssignedHits(col, collName);
-        temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
-        collectionClasses[ct]->AddElement(temp);
+        TEveElementList* temp = BuildTracks(col, collName);
+        if (temp) {
+          temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
+          collectionClasses[ct]->AddElement(temp);
+        }
       } else if (ct == LCIO::RECONSTRUCTEDPARTICLE) {
         if (collName == "PandoraPFOs" || collName == "PandoraPFANewPFOs" ||
             CollHead == "Arbor") {  // Supposed to be modified if user needed...
