@@ -111,10 +111,14 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
         // Store track in map for later color updates
         gGUIManager._RecoTracks[track] = eveTrack;
 
+        // Get track string ID for display
+        std::string trackID = gTruthHelper.GetStringID(track);
+        std::string mcpID = gTruthHelper.GetStringID(gTruthHelper.GetMainMCP(track));
+
         // Set track name and info
-        eveTrack->SetName(Form("Track %d: p=%.2f GeV/c", i, momentum));
-        eveTrack->SetTitle(Form("Track Collection: %s\n"
-                                "Track #%d\n"
+        eveTrack->SetName(Form("%s: p=%.2f GeV/c", trackID.c_str(), momentum));
+        eveTrack->SetTitle(Form("%s\n"
+                                "MCP: %s\n"
                                 "Charge: %d\n"
                                 "Momentum: %.3f GeV/c\n"
                                 "First Hit: (%.2f, %.2f, %.2f) cm\n"
@@ -122,7 +126,9 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
                                 "Omega: %.6f mm^-1\n"
                                 "tan(lambda): %.4f\n"
                                 "Tracker hits: %lu",
-                                name.c_str(), i, charge, momentum,
+                                trackID.c_str(),
+                                mcpID.c_str(),
+                                charge, momentum,
                                 vtx.fX, vtx.fY, vtx.fZ,
                                 end.fX, end.fY, end.fZ,
                                 omega, tanLambda, hits.size()));

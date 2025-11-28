@@ -29,6 +29,7 @@ std::map<EVENT::CalorimeterHit *, EVENT::MCParticle* > caloHitMainMCP;
 std::map<EVENT::Track *, EVENT::MCParticle* > trackMainMCP;
 std::map<EVENT::MCParticle*, MLMCPart*> mcpartIDs;
 std::map<EVENT::CalorimeterHit*, EVENT::SimCalorimeterHit *> caloHitSimCaloHitMap;
+std::map<EVENT::Track*, MLPFA::MLTrack*> m_track2MLTrack;
 
 
 TruthHelper gTruthHelper;
@@ -46,6 +47,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     mcpartIDs.clear();
     caloHitSimCaloHitMap.clear();
     m_mcpTrackerHits.clear();
+    m_track2MLTrack.clear();
 
 
     MLPFA::MLGeom::instance().setBField(gOptions.BField);
@@ -158,6 +160,13 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         MLMCPart *mlPart = ML_at(gMLPFAInputData.m_MCParts, ipart);
         mcpartIDs[mcPart] = mlPart;
     }
+    for(int itrack = 0; itrack < (int)gLCIOData.m_tracks.size(); ++itrack)
+    {
+        EVENT::Track *track = ML_at(gLCIOData.m_tracks, itrack);
+        MLTrack *mltrack = ML_at(gMLPFAInputData.m_tracks, itrack);
+        m_track2MLTrack[track] = mltrack;
+    }
+
 
     for (auto &pair : mcTruthAns.m_track2MainPart)
     {
@@ -339,6 +348,28 @@ std::string TruthHelper::GetStringID(EVENT::MCParticle *mcp)
     }
     return iter->second->getStringID();
 }
+
+std::string TruthHelper::GetStringID(EVENT::Track *track)
+{
+    if(track == nullptr) {
+        return "Track@Null";
+    }
+    auto iter = m_track2MLTrack.find(track);
+    if(iter ==  m_track2MLTrack.end()) {
+        std::cout << "Track not found in m_track2MLTrack map: " << track << std::endl;
+        std::cout << "Track not found in m_track2MLTrack map: " << track << std::endl;
+        std::cout << "Track not found in m_track2MLTrack map: " << track << std::endl;
+        std::cout << "Track not found in m_track2MLTrack map: " << track << std::endl;
+        std::cout << "Track not found in m_track2MLTrack map: " << track << std::endl;
+        std::cout << "Track not found in m_track2MLTrack map: " << track << std::endl;
+        std::cout << "Track not found in m_track2MLTrack map: " << track << std::endl;
+        std::cout << "Track not found in m_track2MLTrack map: " << track << std::endl;
+
+        return "Track@Unknown";
+    }
+    return iter->second->getStringID();
+}
+
 
 EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::CalorimeterHit *caloHit)
 {

@@ -35,6 +35,7 @@ struct TruthHelper
     EVENT::MCParticle *GetMainMCP(EVENT::Track *track);
 
     std::string GetStringID(EVENT::MCParticle *mcp);
+    std::string GetStringID(EVENT::Track *track);
 
     // Get tracker hits for a given MCParticle, sorted by time
     const std::vector<TrackerHitInfo>& GetTrackerHits(EVENT::MCParticle *mcp);
