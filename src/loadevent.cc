@@ -374,7 +374,7 @@ void load_collections(LCEvent* evt, string coltype) {
             std::cout << " MCParticle collection for TruthHelper: " << name << std::endl;
         }
         gTruthHelper.ResetMCTruth(evt);
-        
+
         gGUIManager._MCPList = BuildMCParticles(evt, MCPartCollNames);
         gEve->AddElement(gGUIManager._MCPList);
     }
@@ -383,7 +383,14 @@ void load_collections(LCEvent* evt, string coltype) {
     {
         gGUIManager._SimCaloHitBoxes.clear();
         gGUIManager._SimCaloHitType.clear();
-        gGUIManager.m_CollNames.clear();
+        gGUIManager.m_SimCaloHitCollNames.clear();
+    }
+    
+    if (coltype == "" || coltype == LCIO::CALORIMETERHIT)
+    {
+        gGUIManager._CaloHitBoxes.clear();
+        gGUIManager._CaloHitType.clear();
+        gGUIManager.m_CaloHitCollNames.clear();
     }
 
     for (std::string const &collName : collNames) {

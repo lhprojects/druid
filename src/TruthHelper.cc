@@ -1,7 +1,10 @@
 #include "TruthHelper.h"
 #include "EVENT/CalorimeterHit.h"
 #include "EVENT/SimCalorimeterHit.h"
+#include "EVENT/LCRelation.h"
 #include "EVENT/Cluster.h"
+#include "lcio.h"
+#include "IMPL/LCCollectionVec.h"
 #include <iostream>
 #include <MLPFA/LCIO_MLPFA.h>
 #include "Options.h"
@@ -16,7 +19,9 @@ PFAA::LCIOData gLCIOData;
 std::map<EVENT::Cluster*, EVENT::MCParticle*> mainMCParticles;
 // in PFAA, I didnot record information of this level yet
 std::map<EVENT::SimCalorimeterHit *, EVENT::MCParticle* > simCaloHitMainMCP;
+std::map<EVENT::CalorimeterHit *, EVENT::MCParticle* > caloHitMainMCP;
 std::map<EVENT::MCParticle*, MLMCPart*> mcpartIDs;
+std::map<EVENT::CalorimeterHit*, EVENT::SimCalorimeterHit *> caloHitSimCaloHitMap;
 
 
 TruthHelper gTruthHelper;
@@ -28,8 +33,10 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     gLCIOData.clear();
 
     simCaloHitMainMCP.clear();
+    caloHitMainMCP.clear();
     mainMCParticles.clear();
     mcpartIDs.clear();
+    caloHitSimCaloHitMap.clear();
 
 
     MLPFA::MLGeom::instance().setBField(gOptions.BField);
@@ -43,6 +50,37 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     }
     
     mlpfa_reader.m_MCParticleCollectionNames = m_MCPCollNames;
+    
+    // Set up relation collection names for CaloHit-SimCaloHit links
+    mlpfa_reader.m_RelCaloHitCollectionNames.clear();
+    
+    // Try to find calorimeter relation collections in the event
+    const std::vector<std::string> *collNames = evt->getCollectionNames();
+    for(std::string const &name : *collNames)
+    {
+        try
+        {
+            EVENT::LCCollection *col = evt->getCollection(name);
+            if(col->getTypeName() == "LCRelation" && col->getNumberOfElements() > 0)
+            {
+                // Test if this is a CaloHit-SimCaloHit relation by checking first element
+                EVENT::LCRelation *rel = dynamic_cast<EVENT::LCRelation*>(col->getElementAt(0));
+                if(rel)
+                {
+                    EVENT::CalorimeterHit *caloHit = dynamic_cast<EVENT::CalorimeterHit*>(rel->getFrom());
+                    EVENT::SimCalorimeterHit *simHit = dynamic_cast<EVENT::SimCalorimeterHit*>(rel->getTo());
+                    
+                    // If both casts succeed, this is a CaloHit-SimCaloHit relation
+                    if(caloHit && simHit)
+                    {
+                        mlpfa_reader.m_RelCaloHitCollectionNames.push_back(name);
+                        std::cout << "Found CaloHit-SimCaloHit relation collection: " << name << std::endl;
+                    }
+                }
+            }
+        }
+        catch(...) {}
+    }
 
     mlpfa_reader.fillInputData(evt, gLCIOData, gMLPFAInputData, gMLPFAMetaData);
 
@@ -64,7 +102,13 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     for(int ilink = 0; ilink < gLCIOData.m_caloHitLinks.size(); ++ilink)
     {
         EVENT::LCRelation *rel = gLCIOData.m_caloHitLinks[ilink];
+        EVENT::CalorimeterHit *recoHit = dynamic_cast<EVENT::CalorimeterHit*>(rel->getFrom());
+        EVENT::SimCalorimeterHit *simHit = dynamic_cast<EVENT::SimCalorimeterHit*>(rel->getTo());        
+        caloHitSimCaloHitMap[recoHit] = simHit;
     }
+    
+    std::cout << "Loaded " << gLCIOData.m_caloHitLinks.size() << " CaloHit-SimCaloHit relations" << std::endl;
+    std::cout << "caloHitSimCaloHitMap size: " << caloHitSimCaloHitMap.size() << std::endl;
 
     std::cout << evt->getCollection("MCParticle")->getNumberOfElements() << " MCParticles loaded." << std::endl;
     std::cout << " gLCIOData.m_mcParts.size()" << gLCIOData.m_mcParts.size() << std::endl;
@@ -74,6 +118,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         MLMCPart *mlPart = ML_at(gMLPFAInputData.m_MCParts, ipart);
         mcpartIDs[mcPart] = mlPart;
     }
+
 }
 
 std::string TruthHelper::GetStringID(EVENT::MCParticle *mcp)
@@ -99,7 +144,42 @@ std::string TruthHelper::GetStringID(EVENT::MCParticle *mcp)
 
 EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::CalorimeterHit *caloHit)
 {
-    return nullptr;
+    // Check cache first
+    if(caloHitMainMCP.find(caloHit) != caloHitMainMCP.end())
+    {
+        return caloHitMainMCP[caloHit];
+    }
+
+    // CalorimeterHit is a reconstructed hit, need to find corresponding SimCalorimeterHit via relations
+    EVENT::SimCalorimeterHit *simHit = nullptr;
+    
+    auto iter = caloHitSimCaloHitMap.find(caloHit);
+    if(iter != caloHitSimCaloHitMap.end())
+    {
+        simHit = iter->second;
+    }
+    else
+    {
+        static int warnCount = 0;
+        if(warnCount < 3)
+        {
+            std::cout << "Warning: CalorimeterHit " << caloHit << " not found in caloHitSimCaloHitMap (map size: " 
+                      << caloHitSimCaloHitMap.size() << ")" << std::endl;
+            warnCount++;
+        }
+    }
+    
+    EVENT::MCParticle *mainPart = nullptr;
+    if(simHit != nullptr)
+    {
+        // Use the SimCalorimeterHit method to get the main MCParticle
+        mainPart = GetMainMCP(simHit);
+    }
+    
+    // Cache the result (even if nullptr)
+    caloHitMainMCP[caloHit] = mainPart;
+    
+    return mainPart;
 }
 
 EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::SimCalorimeterHit *caloHit)

@@ -98,6 +98,11 @@ TEveElementList* CaloHits(LCCollection* col, string name) {
   bool isSimHit = col->getTypeName() == LCIO::SIMCALORIMETERHIT;
   bool isRawHit = col->getTypeName() == LCIO::RAWCALORIMETERHIT;
 
+  // Track collection name for CalorimeterHit
+  if (!isSimHit && !isRawHit) {
+    gGUIManager.m_CaloHitCollNames.push_back(name);
+  }
+
   // Clear SimCalorimeterHit boxes when processing SimCalorimeterHit collection
 
   TEveElementList* cal = new TEveElementList;
@@ -809,6 +814,15 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
         }
       }
 
+      // Store CalorimeterHit box for later updates (for color scheme 7)
+      if (!isSimHit) {
+        CalorimeterHit* hit = dynamic_cast<CalorimeterHit*>(col->getElementAt(i));
+        if (hit) {
+          gGUIManager._CaloHitBoxes[q] = hit;
+          gGUIManager._CaloHitType[q] = gGUIManager.m_CaloHitCollNames.size();
+        }
+      }
+
       cal->AddElement(q);
     }
   }
@@ -830,20 +844,11 @@ TEveBox *createSimCaloHitBox(SimCalorimeterHit *hit, float MIPS, int type, int c
     hitPos.SetZ(hit->getPosition()[2]/ 10.0);
 
     float scale = std::log10(10 + 10*MIPS);
-    float base_cell_size = 5.0 / 10;
-    if (caloType == 0)
-    { // ECAL
-        base_cell_size = 5.0 / 10;
-    }
-    else if (caloType == 1)
-    { // HCAL
-        base_cell_size = 20.0 / 10;
-    }
-
+    float base_cell_size = 3;
     float cell_size = base_cell_size * scale;
     
     // Scale XY by energy, but keep Z (thickness) reasonable
-    TVector3 Scale(cell_size, cell_size, 0.1 * cell_size);
+    TVector3 Scale(cell_size, cell_size, cell_size);
 
     TEveBox *q = new TEveBox();
     q->SetName(Form("HitE = %.3e MeV", hitEnergy * 1000));
@@ -863,14 +868,6 @@ TEveBox *createSimCaloHitBox(SimCalorimeterHit *hit, float MIPS, int type, int c
     float s2Y = 0;
     float s2Z = 0;
 
-    float phiAngle = std::atan2(HitY, HitX);
-    float SX = 0;
-    float SY = 0;
-    float SZ = 0;
-    float SX1 = 0;
-    float SY1 = 0;
-    float SZ1 = 0;
-
     if (type == 1) // Based on EndCap
     {
         s1X = -1 * Scale(0) / 2.0;
@@ -880,26 +877,6 @@ TEveBox *createSimCaloHitBox(SimCalorimeterHit *hit, float MIPS, int type, int c
         s1Z = Scale(2) / 2.0;
         s2Z = s1Z;
 
-        SX = fabs(0.5 * Scale(0));
-        SY = fabs(0.5 * Scale(1));
-        SZ = fabs(0.5 * Scale(2));
-        SX1 = SX;
-        SY1 = SY;
-        SZ1 = SZ;
-    } else { // Barrel type
-        s1X = -0.5 * (Scale(0) * sin(phiAngle) + Scale(2) * cos(phiAngle));
-        s1Y = 0.5 * (Scale(0) * cos(phiAngle) - Scale(2) * sin(phiAngle));
-        s2X = -0.5 * (Scale(0) * sin(phiAngle) - Scale(2) * cos(phiAngle));
-        s2Y = 0.5 * (Scale(0) * cos(phiAngle) + Scale(2) * sin(phiAngle));
-        s1Z = Scale(1) / 2.0;
-        s2Z = s1Z;
-
-        SX = fabs(0.5 * (Scale(0) * sin(phiAngle) + Scale(2) * cos(phiAngle)));
-        SX1 = fabs(0.5 * (Scale(0) * sin(phiAngle) - Scale(2) * cos(phiAngle)));
-        SY = fabs(0.5 * (Scale(0) * cos(phiAngle) - Scale(2) * sin(phiAngle)));
-        SY1 = fabs(0.5 * (Scale(0) * cos(phiAngle) + Scale(2) * sin(phiAngle)));
-        SZ = fabs(0.5 * Scale(1));
-        SZ1 = SZ;
     }
 
     q->SetVertex(5, HitX + s2X, HitY + s2Y, HitZ - s1Z);

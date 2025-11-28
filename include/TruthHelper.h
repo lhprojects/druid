@@ -11,6 +11,7 @@ struct TruthHelper
 {
     std::vector<std::string> m_MCPCollNames;
     void ResetMCTruth(EVENT::LCEvent *evt);
+
     EVENT::MCParticle *GetMainMCP(EVENT::Cluster *cluster);
     EVENT::MCParticle *GetMainMCP(EVENT::CalorimeterHit *caloHit);
     EVENT::MCParticle *GetMainMCP(EVENT::SimCalorimeterHit *caloHit);

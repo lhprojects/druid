@@ -16,6 +16,7 @@
 #include "EVENT/LCCollection.h"
 #include "EVENT/SimTrackerHit.h"
 #include "EVENT/SimCalorimeterHit.h"
+#include "EVENT/CalorimeterHit.h"
 #include "EVENT/MCParticle.h"
 #include "EVENT/LCEvent.h"
 #include <string>
@@ -64,8 +65,11 @@ struct GUIManager
 
 
     std::map<TEveBox*, EVENT::SimCalorimeterHit*> _SimCaloHitBoxes;
-    std::vector<std::string> m_CollNames;
+    std::map<TEveBox*, EVENT::CalorimeterHit*> _CaloHitBoxes;
+    std::vector<std::string> m_SimCaloHitCollNames;
+    std::vector<std::string> m_CaloHitCollNames;
     std::map<TEveBox*, int> _SimCaloHitType;
+    std::map<TEveBox*, int> _CaloHitType;
 
     int HitColourType = 0;
     int PFOHitColourType = 0;

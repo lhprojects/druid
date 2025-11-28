@@ -53,8 +53,8 @@ TEveElementList *createSimCaloHits(LCCollection *col, string name)
 {
     bool isSimHit = true;
 
-    int collIndex = gGUIManager.m_CollNames.size();
-    gGUIManager.m_CollNames.push_back(name);
+    int collIndex = gGUIManager.m_SimCaloHitCollNames.size();
+    gGUIManager.m_SimCaloHitCollNames.push_back(name);
 
     // Clear SimCalorimeterHit boxes when processing SimCalorimeterHit collection
 
@@ -551,16 +551,21 @@ TEveElementList *createSimCaloHits(LCCollection *col, string name)
     return cal;
 }
 
-// Function to update SimCalorimeterHit colors to match MCParticle visibility and colors
+// Function to update SimCalorimeterHit and CalorimeterHit colors to match MCParticle visibility and colors
 void UpdateHitColorsToMatchMCParticles() {
-    std::cout << "Updating SimCalorimeterHit colors to match MCParticle visibility..." << std::endl;
+    std::cout << "Updating SimCalorimeterHit and CalorimeterHit colors to match MCParticle visibility..." << std::endl;
     
-    int updatedCount = 0;
-    int grayCount = 0;
+    int simUpdatedCount = 0;
+    int simGrayCount = 0;
+    int caloUpdatedCount = 0;
+    int caloGrayCount = 0;
 
-    for(std::string name : gGUIManager.m_CollNames) {
-        std::cout << "Current collection name: " << name << std::endl;
-
+    for(std::string name : gGUIManager.m_SimCaloHitCollNames) {
+        std::cout << "Current SimCaloHit collection name: " << name << std::endl;
+    }
+    
+    for(std::string name : gGUIManager.m_CaloHitCollNames) {
+        std::cout << "Current CaloHit collection name: " << name << std::endl;
     }
     
     // Iterate through all stored SimCalorimeterHit boxes
@@ -577,7 +582,7 @@ void UpdateHitColorsToMatchMCParticles() {
         int newColor = kGray;
 
         //std::cout << "Main MCP for hit " << hit << ": " << mainMCP << std::endl;
-        std::string name = gGUIManager.m_CollNames.at(gGUIManager._SimCaloHitType[box]);
+        std::string name = gGUIManager.m_SimCaloHitCollNames.at(gGUIManager._SimCaloHitType[box]);
         
         if (mainMCP && gGUIManager._MCPTracks.find(mainMCP) != gGUIManager._MCPTracks.end()) {
             TEveTrack* track = gGUIManager._MCPTracks[mainMCP];
@@ -609,9 +614,9 @@ void UpdateHitColorsToMatchMCParticles() {
         
         if (!mcpIsVisible) {
             newColor = kGray;
-            grayCount++;
+            simGrayCount++;
         } else {
-            updatedCount++;
+            simUpdatedCount++;
         }
         
         // Update the box color
@@ -620,8 +625,58 @@ void UpdateHitColorsToMatchMCParticles() {
         box->SetLineColor(newColor);
     }
     
-    std::cout << "Updated " << updatedCount << " hits to match MCParticle colors, " 
-              << grayCount << " hits set to gray" << std::endl;
+    // Iterate through all stored CalorimeterHit boxes
+    for (auto& hitBox : gGUIManager._CaloHitBoxes) {
+        EVENT::CalorimeterHit* hit = hitBox.second;
+        TEveBox* box = hitBox.first;
+        
+        if (!hit || !box) continue;
+        
+        // Get the main MCParticle for this hit
+        EVENT::MCParticle* mainMCP = gTruthHelper.GetMainMCP(hit);
+        bool mcpIsVisible = false;
+        int newColor = kGray;
+        
+        if (mainMCP && gGUIManager._MCPTracks.find(mainMCP) != gGUIManager._MCPTracks.end()) {
+            TEveTrack* track = gGUIManager._MCPTracks[mainMCP];
+            
+            // Check if the track is visible
+            bool trackVisible = track && track->GetRnrSelf();
+            
+            // Check if the particle's group is showing
+            bool groupVisible = true;
+            auto groupIt = gGUIManager._MCPGroups.find(mainMCP);
+            if (groupIt != gGUIManager._MCPGroups.end()) {
+                TEveElement* group = groupIt->second;
+                if (group) {
+                    groupVisible = group->GetRnrSelf() && group->GetRnrChildren();
+                }
+            }
+            
+            if (trackVisible && groupVisible) {
+                mcpIsVisible = true;
+                // Use the same color as the MCParticle track
+                newColor = track->GetLineColor();
+            }
+        }
+        
+        if (!mcpIsVisible) {
+            newColor = kGray;
+            caloGrayCount++;
+        } else {
+            caloUpdatedCount++;
+        }
+        
+        // Update the box color
+        box->SetMainColor(newColor);
+        box->SetMainAlpha(0.8);
+        box->SetLineColor(newColor);
+    }
+    
+    std::cout << "SimCalorimeterHit: Updated " << simUpdatedCount << " hits to match MCParticle colors, " 
+              << simGrayCount << " hits set to gray" << std::endl;
+    std::cout << "CalorimeterHit: Updated " << caloUpdatedCount << " hits to match MCParticle colors, " 
+              << caloGrayCount << " hits set to gray" << std::endl;
     
     // Redraw without resetting camera view
     if (gEve) {
