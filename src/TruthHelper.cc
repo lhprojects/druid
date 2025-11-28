@@ -1,11 +1,13 @@
 #include "TruthHelper.h"
 #include "EVENT/CalorimeterHit.h"
 #include "EVENT/SimCalorimeterHit.h"
+#include "EVENT/SimTrackerHit.h"
 #include "EVENT/LCRelation.h"
 #include "EVENT/Cluster.h"
 #include "lcio.h"
 #include "IMPL/LCCollectionVec.h"
 #include <iostream>
+#include <algorithm>
 #include <MLPFA/LCIO_MLPFA.h>
 #include "Options.h"
 using namespace MLPFA;
@@ -37,6 +39,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     mainMCParticles.clear();
     mcpartIDs.clear();
     caloHitSimCaloHitMap.clear();
+    m_mcpTrackerHits.clear();
 
 
     MLPFA::MLGeom::instance().setBField(gOptions.BField);
@@ -118,6 +121,156 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         MLMCPart *mlPart = ML_at(gMLPFAInputData.m_MCParts, ipart);
         mcpartIDs[mcPart] = mlPart;
     }
+
+    // Read all SimTrackerHit collections and organize by MCParticle
+    for(std::string const &name : *collNames)
+    {
+        try
+        {
+            EVENT::LCCollection *col = evt->getCollection(name);
+            if(col->getTypeName() == lcio::LCIO::SIMTRACKERHIT)
+            {
+                int nHits = col->getNumberOfElements();
+                std::cout << "Reading " << nHits << " SimTrackerHits from collection: " << name << std::endl;
+                
+                for(int i = 0; i < nHits; ++i)
+                {
+                    EVENT::SimTrackerHit *hit = dynamic_cast<EVENT::SimTrackerHit*>(col->getElementAt(i));
+                    if(hit && hit->getMCParticle())
+                    {
+                        EVENT::MCParticle *mcp = hit->getMCParticle();
+                        const double *pos = hit->getPosition();
+                        float time = hit->getTime();
+                        if(time < 1E-4) {
+                            continue; // Skip hits with zero time
+                        }
+                        
+                        // Check if this hit is too far from the last hit for this MCParticle
+                        std::vector<TrackerHitInfo> &mcpHits = m_mcpTrackerHits[mcp];                        
+                        if(0) {
+                            // Print SimTrackerHit information
+                            std::cout << "  SimTrackerHit " << i << " at (" 
+                                    << pos[0] << ", " << pos[1] << ", " << pos[2] << ") mm, "
+                                    << "Time=" << time << " ns, "
+                                    << "MCP=" << mcp << std::endl;
+                            
+                        }
+                        m_mcpTrackerHits[mcp].emplace_back(pos, time);
+                    }
+                }
+            }
+        }
+        catch(...) {}
+    }
+    
+    // Sort tracker hits by time for each MCParticle
+    int totalHits = 0;
+    for(auto &pair : m_mcpTrackerHits)
+    {
+        std::vector<TrackerHitInfo> &hits = pair.second;
+        bool debug = false;
+        if (mcpartIDs[pair.first] && mcpartIDs[pair.first]->getIndexInCollection() == 33)
+        {
+            debug = true;
+            std::cout << "MCParticle index " << GetStringID(pair.first) << " has " << hits.size() << " SimTrackerHits before organizing." << std::endl;
+        }
+
+        std::sort(hits.begin(), hits.end(), 
+                  [](const TrackerHitInfo &a, const TrackerHitInfo &b) { return a.time < b.time; });
+
+        // Split hits into segments based on distance threshold (1000 mm = 100 cm)
+        std::vector<TrackerHitInfo> filteredHits;
+        const double maxDistance = 30.0; // mm
+        const double minInterSegmentDistance = 500.0; // mm
+        const int minSegmentSize = 5; // Minimum hits per segment (changed from 54)
+        
+        std::vector<TrackerHitInfo> currentSegment;
+        
+        for(size_t i = 0; i < hits.size(); ++i)
+        {
+            if(currentSegment.empty())
+            {
+                // Starting new segment - check distance from previous segment's last hit
+                if(!filteredHits.empty())
+                {
+                    const TrackerHitInfo &lastFilteredHit = filteredHits.back();
+                    double dx = hits[i].position[0] - lastFilteredHit.position[0];
+                    double dy = hits[i].position[1] - lastFilteredHit.position[1];
+                    double dz = hits[i].position[2] - lastFilteredHit.position[2];
+                    double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+                    
+                    // Skip this hit if too far from previous segment
+                    if(distance > minInterSegmentDistance)
+                    {
+                        if(debug) {
+                            std::cout << "  Skipping hit - too far from previous segment: " << distance << " mm" << std::endl;
+                        }
+                        continue;
+                    }
+                }
+                currentSegment.push_back(hits[i]);
+            }
+            else
+            {
+                // Calculate distance from last hit in current segment
+                const TrackerHitInfo &lastHit = currentSegment.back();
+                double dx = hits[i].position[0] - lastHit.position[0];
+                double dy = hits[i].position[1] - lastHit.position[1];
+                double dz = hits[i].position[2] - lastHit.position[2];
+                double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
+                
+                if(distance > maxDistance)
+                {
+                    if (debug)
+                    {
+                        std::cout << "  Distance " << distance << " mm too large between hits at times "
+                                  << lastHit.time << " ns and " << hits[i].time << " ns. "
+                                  << "Ending current segment of size " << currentSegment.size() << "." << std::endl;
+                    }
+                    // Distance too large - end current segment and start new one
+                    if(currentSegment.size() >= minSegmentSize)
+                    {
+                        // Add current segment to filtered hits
+                        filteredHits.insert(filteredHits.end(), currentSegment.begin(), currentSegment.end());
+                    }
+                    else
+                    {
+                        std::cout << "  Ignoring segment with only " << currentSegment.size() 
+                                  << " hits (< " << minSegmentSize << ")" << std::endl;
+                    }
+                    // Start new segment - will be empty and checked on next iteration
+                    currentSegment.clear();
+                }
+                else
+                {
+                    // Distance OK - add to current segment
+                    currentSegment.push_back(hits[i]);
+                }
+            }
+        }
+        
+        // Don't forget the last segment
+        if(!currentSegment.empty())
+        {
+            if(currentSegment.size() >= minSegmentSize)
+            {
+                filteredHits.insert(filteredHits.end(), currentSegment.begin(), currentSegment.end());
+            }
+            else
+            {
+                std::cout << "  Ignoring final segment with only " << currentSegment.size() 
+                          << " hits (< " << minSegmentSize << ")" << std::endl;
+            }
+        }
+        
+        // Replace hits with filtered hits
+        hits = filteredHits;
+        
+        totalHits += hits.size();
+    }
+    
+    std::cout << "Organized " << totalHits << " SimTrackerHits for " 
+              << m_mcpTrackerHits.size() << " MCParticles" << std::endl;
 
 }
 
@@ -215,6 +368,16 @@ EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::SimCalorimeterHit *caloHit)
 EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::Cluster *cluster)
 {
     return mainMCParticles[cluster];    
+}
+
+const std::vector<TrackerHitInfo>& TruthHelper::GetTrackerHits(EVENT::MCParticle *mcp)
+{
+    auto iter = m_mcpTrackerHits.find(mcp);
+    if(iter != m_mcpTrackerHits.end())
+    {
+        return iter->second;  // Already sorted by time
+    }
+    return m_emptyTrackerHits;  // Empty vector reference if not found
 }
 
 #include "../thirdparty/MLPFA/core/src/MLPFA.cc"

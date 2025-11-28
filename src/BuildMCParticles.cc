@@ -98,7 +98,7 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 	TEveTrackPropagator* propsetCharged = new TEveTrackPropagator();
 	//  TEveTrackPropagator* propsetLowE = new TEveTrackPropagator();
 
-	propsetCharged->SetMagFieldObj(new TEveMagFieldDuo(350, -3.5, 2.0));
+	propsetCharged->SetMagFieldObj(new TEveMagFieldDuo(350, -gOptions.BField, 2.0));
 	propsetCharged->SetName("Track propagator for charged particles");
 	propsetCharged->SetMaxR(1000);
 	propsetCharged->SetMaxZ(1000);
@@ -106,7 +106,7 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 	propsetCharged->SetDelta(0.01);
 	//	propsetCharged->SetStepper(TEveTrackPropagator::kRungeKutta);
 
-	propsetNeutral->SetMagFieldObj(new TEveMagFieldConst(0., 0., -3.5));
+	propsetNeutral->SetMagFieldObj(new TEveMagFieldConst(0., 0., 0.));
 	propsetNeutral->SetName("Track propagator for neutral particles");
 	propsetNeutral->SetMaxR(1000);
 	propsetNeutral->SetMaxZ(1000);
@@ -349,88 +349,33 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 					ChargedTrack->fP.Set(px, py, pz);
 					ChargedTrack->fSign = int(charge);
 
-					track = new TEveTrack(ChargedTrack, propsetCharged);
+				track = new TEveTrack(ChargedTrack, propsetCharged);
 
-					TEvePathMark* pm1 = new TEvePathMark(TEvePathMark::kDaughter);
-					TEvePathMark* pm2 = new TEvePathMark(TEvePathMark::kDaughter);
-
-					TEvePathMark* pm3 = new TEvePathMark(TEvePathMark::kDecay);
-
-
-					if( (Vz<2350 && Vz>-2350 && GenRadius<1810) && (Ez>2350 || Ez<-2350 || EndRadius>1810) )   // if cross the board of TPC
+				// Get tracker hits for this MCParticle from TruthHelper
+				const std::vector<TrackerHitInfo>& trackerHits = gTruthHelper.GetTrackerHits(part);
+				
+				// Add tracker hits as path marks (sorted by time), but only if they are far enough apart
+				TEveVector lastPos = Vtx;  // Start from vertex
+				for(const auto& hitInfo : trackerHits)
+				{
+					// Convert mm to cm (LCIO uses mm, ROOT uses cm)
+					TEveVector hitPos(hitInfo.position[0]/10.0, hitInfo.position[1]/10.0, hitInfo.position[2]/10.0);
+					
+					// Only add hit if it's at least 10 cm away from the last position
+					float distance = lastPos.Distance(hitPos);
+					if(distance >= 1.0)
 					{
-						std::string SETHitCollection = "SETCollection";
-						try{
-							LCCollection* col = evt->getCollection( SETHitCollection ) ;
-							int nHits = col->getNumberOfElements();
-							int count = 0;
-							for(int j=0; j<nHits; j++)
-							{
-								SimTrackerHit* hit = dynamic_cast<SimTrackerHit*>( col->getElementAt(j) );
-								MCParticle* hitMCPart = dynamic_cast<MCParticle*>( hit->getMCParticle());
-								if(hitMCPart==part && count==0)
-								{
-									TEveVector SetHit(hit->getPosition()[0]/10.0, hit->getPosition()[1]/10.0, hit->getPosition()[2]/10.0);
-									pm1->fV.Set(SetHit);
-									track->AddPathMark(*pm1);
-									count=1;
-								}
-							}
-						}catch (lcio::DataNotAvailableException zero) { }
-
+						TEvePathMark* pm = new TEvePathMark(TEvePathMark::kDaughter);
+						pm->fV.Set(hitPos);
+						track->AddPathMark(*pm);
+						lastPos = hitPos;  // Update last position
 					}
+				}
 
-
-					if ( (Vz<3381.6 && Vz>-3381.6 && GenRadius<3973.6) && (Ez>3381.6 || Ez<-3381.6 || EndRadius > 3973.6) )   // if end outside the Calo
-					{
-						float MuonCaloHitDis = 0;
-						float EndPointDisMax = 0;
-						float Xmax = 0;
-						float Ymax = 0;
-						float Zmax = 0;
-
-						const std::vector< std::string >* strVec = evt->getCollectionNames() ;
-
-						for( std::vector<std::string>::const_iterator  name2 = strVec->begin() ; name2 != strVec->end() ; name2++){
-							try{
-								LCCollection* col = evt->getCollection( *name2 ) ;
-								string SubD (*name2, 0, 4);
-								if ( SubD=="Muon" )
-								{
-									int nMuonHits = col->getNumberOfElements();
-									for(int i = 0; i<nMuonHits; i++)
-									{
-										SimCalorimeterHit* hit11 = dynamic_cast<SimCalorimeterHit*>( col->getElementAt(i) );
-										MCParticle* hitMCPart11 = dynamic_cast<MCParticle*>( hit11->getParticleCont(0));
-										if( hitMCPart11==part )
-										{ 
-											MuonCaloHitDis = sqrt(hit11->getPosition()[0]*hit11->getPosition()[0]+hit11->getPosition()[1]*hit11->getPosition()[1]+hit11->getPosition()[2]*hit11->getPosition()[2]); 
-											if(MuonCaloHitDis>EndPointDisMax)
-											{
-												EndPointDisMax = MuonCaloHitDis;
-												Xmax = hit11->getPosition()[0]/10.0;
-												Ymax = hit11->getPosition()[1]/10.0;
-												Zmax = hit11->getPosition()[2]/10.0;
-											}
-										}
-									}
-								}
-							}catch (lcio::DataNotAvailableException zero) { }
-
-						}
-
-						TEveVector MuonFarHit(Xmax, Ymax, Zmax);
-						if(EndPointDisMax>10)
-						{
-							pm2->fV.Set(MuonFarHit);
-							track->AddPathMark(*pm2);
-						}
-					}
-
-					pm3->fV.Set(End);
-					track->AddPathMark(*pm3);
-
-
+				// Add endpoint as decay mark
+				TEvePathMark* pmEnd = new TEvePathMark(TEvePathMark::kDecay);
+				pmEnd->fV.Set(End);
+				track->AddPathMark(*pmEnd);
 				} // charged
 				else 
 				{ // neutral

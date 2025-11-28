@@ -5,7 +5,23 @@
 #include "EVENT/Cluster.h"
 #include "EVENT/CalorimeterHit.h"
 #include "EVENT/SimCalorimeterHit.h"
+#include "EVENT/SimTrackerHit.h"
 #include "EVENT/LCEvent.h"
+#include <vector>
+#include <map>
+
+struct TrackerHitInfo
+{
+    double position[3];  // x, y, z position
+    float time;          // time of the hit
+    
+    TrackerHitInfo(const double* pos, float t) : time(t)
+    {
+        position[0] = pos[0];
+        position[1] = pos[1];
+        position[2] = pos[2];
+    }
+};
 
 struct TruthHelper
 {
@@ -17,6 +33,13 @@ struct TruthHelper
     EVENT::MCParticle *GetMainMCP(EVENT::SimCalorimeterHit *caloHit);
 
     std::string GetStringID(EVENT::MCParticle *mcp);
+
+    // Get tracker hits for a given MCParticle, sorted by time
+    const std::vector<TrackerHitInfo>& GetTrackerHits(EVENT::MCParticle *mcp);
+
+private:
+    std::map<EVENT::MCParticle*, std::vector<TrackerHitInfo>> m_mcpTrackerHits;
+    std::vector<TrackerHitInfo> m_emptyTrackerHits;  // For returning empty reference
 
 };  // struct TruthHelper
 
