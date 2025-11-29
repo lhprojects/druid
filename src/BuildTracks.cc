@@ -55,9 +55,9 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
 
     int nTracks = col->getNumberOfElements();
     
-    for(int i = 0; i < nTracks; i++)
+    for(int itrk = 0; itrk < nTracks; itrk++)
     {
-        Track* track = dynamic_cast<Track*>(col->getElementAt(i));
+        Track* track = dynamic_cast<Track*>(col->getElementAt(itrk));
         if(!track) continue;
 
         TrackerHitVec const &hits = track->getTrackerHits();
@@ -67,9 +67,6 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
         const double* firstPos = hits.front()->getPosition();
         const double* lastPos = hits.back()->getPosition();
 
-        // Convert to Eve units (cm) and create vectors
-        TEveVector vtx(firstPos[0] / 10.0, firstPos[1] / 10.0, firstPos[2] / 10.0);
-        TEveVector end(lastPos[0] / 10.0, lastPos[1] / 10.0, lastPos[2] / 10.0);
 
         // Get track parameters
         double omega = track->getOmega();
@@ -87,11 +84,49 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
         
         int charge = (omega > 0) ? 1 : -1;
 
+        // print out all tracker hit
+        if (itrk == 21 || itrk == 22)
+        {
+            for (int iHit = 0; iHit < static_cast<int>(hits.size()); iHit++)
+            {
+                const double *pos = hits[iHit]->getPosition();
+                const double radius = sqrt(pos[0]*pos[0] + pos[1]*pos[1]);
+                std::cout << "   " << iHit
+                          << ": (x,y,z) = (" << pos[0] << ", " << pos[1] << ", " << pos[2] << ") " << " r = " << radius << " mm"
+                          << " time: " << hits[iHit]->getTime()
+                          << std::endl;
+            }
+        }
+        
+        const TrackState *trackState = nullptr;
+        if ((lastPos[2] - firstPos[2]) * mom.GetZ() < 0)
+        {
+            std::swap(firstPos, lastPos);
+            trackState = track->getTrackState(TrackState::AtLastHit);
+        } else {
+            trackState = track->getTrackState(TrackState::AtFirstHit);
+        }
+        // we need to use momentum at firstPos
+        MLPFA::Helix helix2(trackState->getPhi(),
+                    trackState->getD0(),
+                    trackState->getZ0(),
+                    trackState->getOmega(),
+                    trackState->getTanLambda(),
+                    gOptions.BField);
+        mom = helix2.m_momentum;
+
+
+
+
+        // Convert to Eve units (cm) and create vectors
+        TEveVector vtx(firstPos[0] / 10.0, firstPos[1] / 10.0, firstPos[2] / 10.0);
+        TEveVector end(lastPos[0] / 10.0, lastPos[1] / 10.0, lastPos[2] / 10.0);
         // Create TEveRecTrack
         TEveRecTrack* recTrack = new TEveRecTrack();
         recTrack->fV.Set(vtx);
         recTrack->fP.Set(mom.GetX(), mom.GetY(), mom.GetZ());
         recTrack->fSign = charge;
+
 
         // Create TEveTrack
         TEveTrack* eveTrack = new TEveTrack(recTrack, propsetCharged);
@@ -113,25 +148,30 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
 
         // Get track string ID for display
         std::string trackID = gTruthHelper.GetStringID(track);
-        std::string mcpID = gTruthHelper.GetStringID(gTruthHelper.GetMainMCP(track));
+        EVENT::MCParticle *mainMCP = gTruthHelper.GetMainMCP(track);
+        std::string mcpID = gTruthHelper.GetStringID(mainMCP);
+        double mcPx = mainMCP ? mainMCP->getMomentum()[0] : 0.0;
+        double mcPy = mainMCP ? mainMCP->getMomentum()[1] : 0.0;
+        double mcPz = mainMCP ? mainMCP->getMomentum()[2] : 0.0;
+        double mcMomentum = sqrt(mcPx * mcPx + mcPy * mcPy + mcPz * mcPz);
+
 
         // Set track name and info
         eveTrack->SetName(Form("%s: p=%.2f GeV/c", trackID.c_str(), momentum));
         eveTrack->SetTitle(Form("%s\n"
-                                "MCP: %s\n"
                                 "Charge: %d\n"
-                                "Momentum: %.3f GeV/c\n"
+                                "Momentum: %.3f GeV/c, (%.2f, %.2f, %.2f)\n"
+                                "MCP %s, Momentum: %.3f GeV/c, (%.2f, %.2f, %.2f)\n"
                                 "First Hit: (%.2f, %.2f, %.2f) cm\n"
                                 "Last Hit: (%.2f, %.2f, %.2f) cm\n"
-                                "Omega: %.6f mm^-1\n"
-                                "tan(lambda): %.4f\n"
                                 "Tracker hits: %lu",
                                 trackID.c_str(),
-                                mcpID.c_str(),
-                                charge, momentum,
+                                charge, 
+                                momentum, mom.GetX(), mom.GetY(), mom.GetZ(),
+                                mcpID.c_str(), mcMomentum, mcPx, mcPy, mcPz,
                                 vtx.fX, vtx.fY, vtx.fZ,
                                 end.fX, end.fY, end.fZ,
-                                omega, tanLambda, hits.size()));
+                                hits.size()));
 
         trackList->AddElement(eveTrack);
     }
@@ -159,7 +199,7 @@ void UpdateTrackColorsByMCParticle() {
         EVENT::MCParticle* mainMCP = gTruthHelper.GetMainMCP(track);
         int newColor = kGray;
         bool mcpIsVisible = false;
-        std::cout << "Track associated MCParticle: " 
+        std::cout << "Track " << gTruthHelper.GetStringID(track) << " associated MCParticle: " 
                   << (mainMCP ? gTruthHelper.GetStringID(mainMCP) : "None") << std::endl;
         
         if (mainMCP && gGUIManager._MCPTracks.find(mainMCP) != gGUIManager._MCPTracks.end()) {

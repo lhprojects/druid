@@ -52,7 +52,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
 
     MLPFA::MLGeom::instance().setBField(gOptions.BField);
 
-    PFAA::setLogLevel(PFAA::LOG_DEBUG1 | PFAA::LOG_DEBUG2);
+    //PFAA::setLogLevel(PFAA::LOG_DEBUG1 | PFAA::LOG_DEBUG2);
     
     // Set TPC geometry if provided via command line options
     if (gOptions.tpc_innerRadius > 0) {
