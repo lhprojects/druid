@@ -1,4 +1,5 @@
 #include "Options.h"
+#include "Rtypes.h"
 #include <iostream>
 #include <cstring>
 #include <vector>
@@ -118,6 +119,8 @@ void Options::parse(int &argc, char** &argv) {
     tpc_outerRadius = -1.0;
     tpc_halfZ = -1.0;
     draw_tpc_cylinder = false;
+    tpc_innerBarrelColor = kCyan;
+    tpc_outerBarrelColor = kMagenta;
     printHelp=false;
     printVersion=false;
 
@@ -130,6 +133,8 @@ void Options::parse(int &argc, char** &argv) {
         } else if(read_double(argc, argv, i, "-tpc.outerRadius", tpc_outerRadius)) {
         } else if(read_double(argc, argv, i, "-tpc.halfZ", tpc_halfZ)) {
         } else if (read_bool(argc, argv, i, "-draw.tpc.cylinder", draw_tpc_cylinder)) {
+        } else if(read_int(argc, argv, i, "-draw.tpc.innerBarrelColor", tpc_innerBarrelColor)) {
+        } else if(read_int(argc, argv, i, "-draw.tpc.outerBarrelColor", tpc_outerBarrelColor)) {
         } else if (read_bool(argc, argv, i, "-h", printHelp)) {
         } else if (read_bool(argc, argv, i, "-v", printVersion)) {
         } else if(add_string(argc, argv, i, "-coll.caloHit.filterOutSuffix", coll_caloHit_filterOutSuffixes))  {

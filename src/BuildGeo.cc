@@ -11,6 +11,7 @@
 
 
 #include "GlobalDefs.hh"
+#include "Options.h"
 #include "TEveManager.h"
 #include "TEveCompound.h"
 #include "TEveGeoNode.h"
@@ -346,9 +347,9 @@ void DrawTPCCylinder(double innerRadius, double outerRadius, double halfZ) {
 	TGeoTube* innerTube = new TGeoTube("TPCInner", innerRadius/10.0, innerRadius/10.0 + 0.1, halfZ/10.0);
 	TEveGeoShape* innerShape = new TEveGeoShape("TPC Inner Radius");
 	innerShape->SetShape(innerTube);
-	innerShape->SetMainColor(kBlue);
+	innerShape->SetMainColor(gOptions.tpc_innerBarrelColor);
 	innerShape->SetMainTransparency(80);
-	innerShape->SetLineColor(kBlue);
+	innerShape->SetLineColor(gOptions.tpc_innerBarrelColor);
 	innerShape->SetLineWidth(2);
 	gEve->AddGlobalElement(innerShape);
 
@@ -356,9 +357,9 @@ void DrawTPCCylinder(double innerRadius, double outerRadius, double halfZ) {
 	TGeoTube* outerTube = new TGeoTube("TPCOuter", outerRadius/10.0 - 0.1, outerRadius/10.0, halfZ/10.0);
 	TEveGeoShape* outerShape = new TEveGeoShape("TPC Outer Radius");
 	outerShape->SetShape(outerTube);
-	outerShape->SetMainColor(kRed);
+	outerShape->SetMainColor(gOptions.tpc_outerBarrelColor);
 	outerShape->SetMainTransparency(80);
-	outerShape->SetLineColor(kRed);
+	outerShape->SetLineColor(gOptions.tpc_outerBarrelColor);
 	outerShape->SetLineWidth(2);
 	gEve->AddGlobalElement(outerShape);
 

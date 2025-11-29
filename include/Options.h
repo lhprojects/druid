@@ -12,6 +12,8 @@ struct Options
     double tpc_outerRadius;
     double tpc_halfZ;
     bool draw_tpc_cylinder;
+    int tpc_innerBarrelColor;
+    int tpc_outerBarrelColor;
     bool printVersion;
     bool printHelp;
     std::vector<std::string> coll_caloHit_filterOutSuffixes;
