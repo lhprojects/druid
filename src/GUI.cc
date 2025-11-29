@@ -210,7 +210,7 @@ void make_gui()
 		menuHitColour->AddEntry("EM, Had & Neutron", 5);
 		menuHitColour->AddEntry("Timing/ns", 6);
 		menuHitColour->AddEntry("MCParticle Color", 7);
-		menuHitColour->Select(7, kFALSE);		//Default choice: MCParticle Color
+		menuHitColour->Select(gGUIManager.HitColourType, kFALSE);		//Select based on initial value
 		//menuHitColour->Connect("Selected(Int_t)", "EventNavigator", fh, "setCellColour(Int_t)");
 		menuHitColour->Connect("Selected(int)", "EventNavigator", fh, "setCellColour(int)");
 		menuHitColour->Resize(150, 20);

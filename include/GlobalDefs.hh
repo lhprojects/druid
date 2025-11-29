@@ -73,7 +73,7 @@ struct GUIManager
     std::map<TEveBox*, int> _SimCaloHitType;
     std::map<TEveBox*, int> _CaloHitType;
 
-    int HitColourType = 0;
+    int HitColourType = 7;
     int PFOHitColourType = 0;
     int ClusterHitColourType = 1;
 

@@ -125,14 +125,14 @@ void EventNavigator::setCollection()
 {
     printf(" Update colors \n");
 
+    UpdateTrackColorsByMCParticle();
+    
     if (gGUIManager.HitColourType == 7)
     {
         UpdateHitColorsToMatchMCParticles();
-        UpdateTrackColorsByMCParticle();
     }
     else
     {
-        load_collections(evt, LCIO::TRACK);
         load_collections(evt, LCIO::SIMCALORIMETERHIT);
         load_collections(evt, LCIO::CALORIMETERHIT);
     }
