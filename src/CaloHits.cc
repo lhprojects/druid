@@ -775,43 +775,21 @@ mouse q->SetMainColor(19); q->SetLineColor(19);
       q->SetLineColor(0);
       q->SetMainAlpha(0.8);
 
-      if (Flag_AttachTextToHit) {
-        if (isSimHit) {
-          q->SetTitle(Form(
-              "SimCaloHit %s\n"
-              "EventNum=%d, SubDetector=%s\n"
-              "Hit Energy = %.3e keV ~ %.3e Mip, Thresh = %3.e keV\n"
-              "MCPID = %d, MCenergy = %.3f\n "
-              "OriginPID = %d, OriginEnergy = %.3f\n"
-              "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm, StaveNum = %d, "
-              "LayerNum = %d, IndexI = %d, IndexJ = %d, Originindex = %d, "
-              "HitTime = %.3fns",
-              name.c_str(), gDisplayState.getEventNumber(), SubDCollection.c_str(), HitEn * 1000000,
-              Mipcount, cellEnergyThresh * 1000000, MCPID, MCenergy, MotherPID,
-              MotherEnergy, 10 * HitX, 10 * HitY, 10 * HitZ, StaveNum, LayerNum,
-              IndexI, IndexJ, Originindex, MCContTime));
-        } else {
-          /*
-             if(flagdetectortype != 2)
-             q->SetTitle(Form( "Reconstructed Calo Hit %s \n"
-             "EventNum=%d, SubDetector=%s\n"
-             "Hit Energy = %.3e keV ~ %.3e Mip, StaveNum = %d\n"
-             "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm",
-             name.c_str(), event_id, SubDCollection.c_str(), HitEn*1000000,
-             Mipcount, StaveNum, 10*HitX, 10*HitY, 10*HitZ));
-
-             else
-             */
-          q->SetTitle(
-              Form("Reconstructed Calo Hit %s \n"
-                   "EventNum=%d, SubDetector=%s, (Layer, Chip, "
-                   "Channel)=(%d,%d,%d) \n"
-                   "Hit Energy = %.3e GeV ~ %.3e Mip , StaveNum = %d\n"
-                   "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm",
-                   name.c_str(), gDisplayState.getEventNumber(), SubDCollection.c_str(), LayerNum,
-                   IndexI, IndexJ, HitEn, Mipcount, StaveNum, 10 * HitX,
-                   10 * HitY, 10 * HitZ));
-        }
+      if (Flag_AttachTextToHit)
+      {
+        CalorimeterHit* hit = dynamic_cast<CalorimeterHit*>(col->getElementAt(i));
+        EVENT::MCParticle *mainMCP = hit ? gTruthHelper.GetMainMCP(hit) : nullptr;
+        std::string mcpID = gTruthHelper.GetStringID(mainMCP);
+        q->SetTitle(
+            Form("Reconstructed Calo Hit %s \n"
+                 "EventNum=%d, SubDetector=%s\n"
+                 "Hit Energy = %.3e GeV ~ %.3e Mip\n"
+                 "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n"
+                 "MCP: %s",
+                 name.c_str(), gDisplayState.getEventNumber(), SubDCollection.c_str(),
+                 HitEn, Mipcount,
+                 10 * HitX, 10 * HitY, 10 * HitZ,
+                 mcpID.c_str()));
       }
 
       // Store CalorimeterHit box for later updates (for color scheme 7)

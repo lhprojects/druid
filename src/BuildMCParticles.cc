@@ -52,6 +52,17 @@ bool IsNeutrino(int PID){
 	return false;
 }
 
+// Get color variation for a particle based on its index
+// pid is the PDG ID (for future use)
+// index is the original particle index in the collection (before any filtering)
+// baseColor is the ROOT color constant (kBlue, kRed, etc.)
+// Returns a color from the color wheel (e.g., kBlue-7, kRed+2, etc.)
+int GetParticleColor(int pid, int index, int baseColor) {
+	// Use index to generate color offset in the range -6 to +6
+	int colorOffset = (index % 13) - 6;
+	return baseColor + colorOffset;
+}
+
 
 TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const &mcpartcollnames)
 {
@@ -117,7 +128,7 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 	double MCTracksMinLength = 0.5; //cm
 	double MCTracksLowEThresh = 0.01;
 
-	enum ETrType { kAucune=0, kElectron, kPositron, kMuonP, kMuonN, kPionP, kPionN, kKaonP, kKaonN, kProton, kNeutron, kKlong, kGamma, kIon, kNeutralHad, kNeutrino, kLowE, kLast};
+	enum ETrType { kAucune=0, kChargedLepton, kChargedHadron, kPhoton, kNeutralHad, kNeutrino, kLowE, kLast};
 
 	struct MCTrackDisplay {
 		const char * Name;
@@ -127,23 +138,13 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 	};
 
 	MCTrackDisplay MCTParams[kLast] = {
-		{"None       ",   0, 0, 0},
-		{"Electron   ",   98, 2, 1},
-		{"Positron   ",   53, 2, 1},
-		{"Muon+      ",   2, 2, 1},
-		{"Muon-      ",   4, 2, 1},
-		{"Pion+      ",   96, 2, 1},
-		{"Pion-      ",   66, 2, 1},
-		{"Kaon+      ",   6, 2, 1},
-		{"Kaon-      ",   7, 2, 1},
-		{"Proton     ",   6, 2, 1},
-		{"Neutron    ",   7, 1, 1},
-		{"Klong     ",   3, 1, 1},
-		{"Gamma     ",   5, 1, 1},
-		{"Ion       ",   15, 1, 1},
-		{"NeutralHad",   5, 1, 1},
-		{"Neutrino  ",   7, 1, 1},
-		{"LowE      ",   15, 1, 1}
+		{"None          ",   0, 0, 0},
+		{"ChargedLepton ",   kBlue, 2, 1},
+		{"ChargedHadron ",   kRed, 2, 1},
+		{"Photon        ",   kYellow, 1, 1},
+		{"NeutralHadron ",   kGreen, 1, 1},
+		{"Neutrino      ",   kGray, 1, 1},
+		{"LowE          ",   15, 1, 1}
 	};
 
 
@@ -160,34 +161,16 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 	TEveTrackList* cpdLowE = new TEveTrackList("LowE");
 	cpdLowE->SetMainColor(15);
 
-	TEveTrackList* cpdMuons = new TEveTrackList("Muons");
-	cpdMuons->SetMainColor(MCTParams[kMuonP].Color);
+	TEveTrackList* cpdChargedLepton = new TEveTrackList("Charged Lepton");
+	cpdChargedLepton->SetMainColor(MCTParams[kChargedLepton].Color);
 
-	TEveTrackList* cpdPions = new TEveTrackList("Pions");
-	cpdPions->SetMainColor(MCTParams[kKaonP].Color);
+	TEveTrackList* cpdChargedHadron = new TEveTrackList("Charged Hadron");
+	cpdChargedHadron->SetMainColor(MCTParams[kChargedHadron].Color);
 
-	TEveTrackList* cpdElectrons = new TEveTrackList("Electrons");
-	cpdElectrons->SetMainColor(MCTParams[kElectron].Color);
+	TEveTrackList* cpdPhoton = new TEveTrackList("Photon");
+	cpdPhoton->SetMainColor(MCTParams[kPhoton].Color);
 
-	TEveTrackList* cpdChargedKaons = new TEveTrackList("Charged Kaons");
-	cpdChargedKaons->SetMainColor(MCTParams[kKaonP].Color);
-
-	TEveTrackList* cpdProtons = new TEveTrackList("Protons");
-	cpdProtons->SetMainColor(MCTParams[kProton].Color);
-
-	TEveTrackList* cpdNeutrons = new TEveTrackList("Neutrons");
-	cpdNeutrons->SetMainColor(MCTParams[kNeutron].Color);
-
-	TEveTrackList* cpdKlongs = new TEveTrackList("Klong");
-	cpdKlongs->SetMainColor(MCTParams[kKlong].Color);
-
-	TEveTrackList* cpdGamma = new TEveTrackList("Gamma");
-	cpdGamma->SetMainColor(MCTParams[kGamma].Color);
-
-	TEveTrackList* cpdIon = new TEveTrackList("Ion");       //default: charged tracks besides the defined ones
-	cpdIon->SetMainColor(MCTParams[kIon].Color);
-
-	TEveTrackList* cpdNeutralHad = new TEveTrackList("NeutralHad");
+	TEveTrackList* cpdNeutralHad = new TEveTrackList("Neutral Hadron");
 	cpdNeutralHad->SetMainColor(MCTParams[kNeutralHad].Color);
 
 	TEveTrackList* cpdNeutrinos = new TEveTrackList(MCTParams[kNeutrino].Name);
@@ -256,7 +239,7 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 				//	PT = sqrt(px*px+py*py);
 				PT = energy;					//tmplate usage...
 
-				if(PID == 22 && energy > 0.5)	//Only show the information for particle/gamma with energy > 0.5GeV
+				if(PID == 22)	//Only show the information for particle/gamma with energy > 0.5GeV
 				{	
 					MCParticleVec mother = part->getParents();
 					if (mother.size() > 0)
@@ -273,6 +256,7 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 				TEveTrack* track = NULL;
 				ETrType TrType = kAucune;
 				TEveArrow* a1 = NULL;
+				int trackColor = kGray;
 
 				float Length = Vtx.Distance(End);
 
@@ -286,60 +270,54 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 				if( PT < gOptions.MCPtCut) continue;
 
 				printf("MCP: charge %d, pdg %d, (%f,%f,%f)\n", int(charge), PID, px, py, pz);
-				if(charge!=0 && KineticE >= MCTracksLowEThresh){
-
-					switch(PID){
-						case 11:
-							TrType = kElectron;
-							currCompound = cpdElectrons;
-							break;
-
-						case -11:
-							TrType = kPositron;
-							currCompound = cpdElectrons;
-							break;
-
-						case 13:
-							TrType = kMuonN;
-							currCompound = cpdMuons;
-							break;
-
-						case -13:
-							TrType = kMuonP;
-							currCompound = cpdMuons;
-							break;
-
-						case 211:
-							TrType = kPionP;
-							currCompound = cpdPions;
-							break;
-
-						case -211:
-							TrType = kPionN;
-							currCompound = cpdPions;
-							break;
-
-						case 321:
-							TrType = kKaonP;
-							currCompound = cpdChargedKaons;
-							break;
-
-						case -321:
-							TrType = kKaonN;
-							currCompound = cpdChargedKaons;
-							break;
-
-						case 2212:
-							TrType = kProton;
-							currCompound = cpdProtons;
-							break;
-
-						default:
-							TrType = kIon; 
-							currCompound = cpdIon;
-							break;
+				
+				// First check for low energy particles (both charged and neutral)
+				if(KineticE < MCTracksLowEThresh) {
+					TrType = kLowE;
+					currCompound = cpdLowE;
+					trackColor = MCTParams[kLowE].Color;
+				}
+				// Charged particles
+				else if(charge != 0) {
+					// Classify into simplified categories
+					int absPID = abs(PID);
+					
+					// Charged Leptons: electrons, muons, taus
+					if(absPID == 11 || absPID == 13 || absPID == 15) {
+						TrType = kChargedLepton;
+						currCompound = cpdChargedLepton;
+						trackColor = GetParticleColor(PID, i, kBlue);
 					}
-
+					// Charged Hadrons: pions, kaons, protons, and other charged particles
+					else {
+						TrType = kChargedHadron;
+						currCompound = cpdChargedHadron;
+						trackColor = GetParticleColor(PID, i, kRed);
+					}
+				}
+			// Neutral particles
+			else {
+				// Neutrinos
+				if(IsNeutrino(PID)) {
+					TrType = kNeutrino;
+					currCompound = cpdNeutrinos;
+					trackColor = GetParticleColor(PID, i, kGray);
+				}
+				// Photons
+				else if(abs(PID) == 22) {
+					TrType = kPhoton;
+					currCompound = cpdPhoton;
+					trackColor = GetParticleColor(PID, i, kYellow);
+				}
+				// Neutral Hadrons: neutrons, K_L, and all other neutral hadrons
+				else {
+					TrType = kNeutralHad;
+					currCompound = cpdNeutralHad;
+					trackColor = GetParticleColor(PID, i, kGreen);
+				}
+			}				// Create track for charged particles
+				if(TrType != kAucune && charge != 0)
+				{
 					propsetCharged->RefPMAtt().SetMarkerColor(kYellow);
 					propsetCharged->RefPMAtt().SetMarkerStyle(kCircle);
 					propsetCharged->RefPMAtt().SetMarkerSize(1.0);
@@ -349,99 +327,52 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 					ChargedTrack->fP.Set(px, py, pz);
 					ChargedTrack->fSign = int(charge);
 
-				track = new TEveTrack(ChargedTrack, propsetCharged);
+					track = new TEveTrack(ChargedTrack, propsetCharged);
 
-				// Get tracker hits for this MCParticle from TruthHelper
-				const std::vector<TrackerHitInfo>& trackerHits = gTruthHelper.GetTrackerHits(part);
-				
-				// Add tracker hits as path marks (sorted by time), but only if they are far enough apart
-				TEveVector lastPos = Vtx;  // Start from vertex
-				for(const auto& hitInfo : trackerHits)
-				{
-					// Convert mm to cm (LCIO uses mm, ROOT uses cm)
-					TEveVector hitPos(hitInfo.position[0]/10.0, hitInfo.position[1]/10.0, hitInfo.position[2]/10.0);
+					// Get tracker hits for this MCParticle from TruthHelper
+					const std::vector<TrackerHitInfo>& trackerHits = gTruthHelper.GetTrackerHits(part);
 					
-					// Only add hit if it's at least 10 cm away from the last position
-					float distance = lastPos.Distance(hitPos);
-					if(distance >= 1.0)
+					// Add tracker hits as path marks (sorted by time), but only if they are far enough apart
+					TEveVector lastPos = Vtx;  // Start from vertex
+					for(const auto& hitInfo : trackerHits)
 					{
-						TEvePathMark* pm = new TEvePathMark(TEvePathMark::kDaughter);
-						pm->fV.Set(hitPos);
-						track->AddPathMark(*pm);
-						lastPos = hitPos;  // Update last position
-					}
-				}
-
-				// Add endpoint as decay mark
-				TEvePathMark* pmEnd = new TEvePathMark(TEvePathMark::kDecay);
-				pmEnd->fV.Set(End);
-				track->AddPathMark(*pmEnd);
-				} // charged
-				else 
-				{ // neutral
-					/*
-					   propsetNeutral->SetMagFieldObj(new TEveMagFieldConst(0., 0., -3.5));
-					   propsetNeutral->SetName("Track propagator for neutral particles");
-					   propsetNeutral->SetMaxR(1000);
-					   propsetNeutral->SetMaxZ(1000);
-					   propsetNeutral->SetMaxOrbs(1.0);
-					   */
-					if( KineticE < MCTracksLowEThresh && ! IsNeutrino(PID) )
-					{
-						TrType = kLowE;
-						currCompound = cpdLowE;
-					}else{
-
-						switch( abs(PID) ){
-							case  12:   // pass through
-							case  14:   // pass through
-							case  16:   // pass through  //Neutrinos
-									 TrType = kNeutrino;
-									 currCompound = cpdNeutrinos;
-									 break;
-
-							case 22:    //Gammas
-									 TrType = kGamma;
-									 currCompound = cpdGamma;
-									 std::cout<<"  Displaying Gamma with energy: "<<energy<<std::endl;
-									 break;
-
-							case 2112:
-									 TrType = kNeutron;
-									 currCompound = cpdNeutrons;
-									 break;
-
-							case 130:
-									 TrType = kKlong;
-									 currCompound = cpdKlongs;
-									 break;
-
-							default:    //All neutral hadrons
-									 TrType = kNeutralHad;
-									 currCompound = cpdNeutralHad;
-									 break;
+						// Convert mm to cm (LCIO uses mm, ROOT uses cm)
+						TEveVector hitPos(hitInfo.position[0]/10.0, hitInfo.position[1]/10.0, hitInfo.position[2]/10.0);
+						
+						// Only add hit if it's at least 10 cm away from the last position
+						float distance = lastPos.Distance(hitPos);
+						if(distance >= 1.0)
+						{
+							TEvePathMark* pm = new TEvePathMark(TEvePathMark::kDaughter);
+							pm->fV.Set(hitPos);
+							track->AddPathMark(*pm);
+							lastPos = hitPos;  // Update last position
 						}
 					}
-					if( TrType != kAucune )
-					{
 
-						TEveRecTrack* NeutralTrack = new TEveRecTrack();
-						NeutralTrack->fV.Set(Vtx);
-						NeutralTrack->fP.Set(px, py, pz);
-						NeutralTrack->fSign = int(charge);
+					// Add endpoint as decay mark
+					TEvePathMark* pmEnd = new TEvePathMark(TEvePathMark::kDecay);
+					pmEnd->fV.Set(End);
+					track->AddPathMark(*pmEnd);
+				} // charged
+				// Create track for neutral particles
+				else if(TrType != kAucune)
+				{ // neutral
+					TEveRecTrack* NeutralTrack = new TEveRecTrack();
+					NeutralTrack->fV.Set(Vtx);
+					NeutralTrack->fP.Set(px, py, pz);
+					NeutralTrack->fSign = int(charge);
 
-						track = new TEveTrack(NeutralTrack, propsetNeutral);
+					track = new TEveTrack(NeutralTrack, propsetNeutral);
 
-						TEvePathMark *pm = PathMarkEndTrackDecay(Vtx, End);
-						track->AddPathMark(*pm);
-					}
-
+					TEvePathMark *pm = PathMarkEndTrackDecay(Vtx, End);
+					track->AddPathMark(*pm);
 				}
 
 				if(track){
 					track->SetName(Form("%s", gTruthHelper.GetStringID(part).c_str()));
 					track->SetLineWidth(MCTParams[TrType].Width);
-					track->SetLineColor(MCTParams[TrType].Color);
+					track->SetLineColor(trackColor);  // Use specific particle color
 					track->SetLineStyle(MCTParams[TrType].Style);
 					track->SetSmooth(kTRUE);
 					if(PID == 22){
@@ -478,21 +409,14 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 			//        MCTracks->AddElement(cpdMother);
 			MCTracks->AddElement(cpdLowE);
 			MCTracks->AddElement(cpdNeutrinos);
-			MCTracks->AddElement(cpdGamma);
+			MCTracks->AddElement(cpdPhoton);
 			MCTracks->AddElement(cpdNeutralHad);
-			MCTracks->AddElement(cpdMuons);
-			MCTracks->AddElement(cpdPions);
-			MCTracks->AddElement(cpdElectrons);
-			MCTracks->AddElement(cpdChargedKaons);
-			MCTracks->AddElement(cpdProtons);
-			MCTracks->AddElement(cpdNeutrons);
-			MCTracks->AddElement(cpdKlongs);
-			MCTracks->AddElement(cpdIon);
+			MCTracks->AddElement(cpdChargedLepton);
+			MCTracks->AddElement(cpdChargedHadron);
 
 
 			cpdLowE->SetRnrSelfChildren(kFALSE, kFALSE);
 			cpdNeutralHad->SetRnrSelfChildren(kFALSE, kFALSE);
-			cpdNeutrons->SetRnrSelfChildren(kFALSE, kFALSE);
 
 		} // if MCTrack collection
 

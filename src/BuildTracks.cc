@@ -85,7 +85,7 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
         int charge = (omega > 0) ? 1 : -1;
 
         // print out all tracker hit
-        if (itrk == 21 || itrk == 22)
+        if (false)
         {
             for (int iHit = 0; iHit < static_cast<int>(hits.size()); iHit++)
             {
