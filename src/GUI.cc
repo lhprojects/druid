@@ -97,7 +97,9 @@ void make_gui()
 
 		frmEvent->AddFrame(hf);
 
-		TString icondir( Form("%s/icons/", gSystem->Getenv("DRUIDDIR")) );
+		// Get icon directory relative to executable
+		TString icondir = gSystem->DirName(gProgName);
+		icondir += "/icons/";
 
 		TGPictureButton* b = 0;
 
@@ -133,7 +135,9 @@ void make_gui()
 		TGGroupFrame *frmRotateColor =
 			new TGGroupFrame(frmMain, "Rotation Center, Hits Color", kHorizontalFrame);
 
-		TString icondir( Form("%s/icons/", gSystem->Getenv("DRUIDDIR")) );
+		// Get icon directory relative to executable
+		TString icondir = gSystem->DirName(gProgName);
+		icondir += "/icons/";
 
 		TGPictureButton* d = 0;
 		d = new TGPictureButton(frmRotateColor, gClient->GetPicture(icondir + "RotationCenter.png"));
@@ -192,7 +196,7 @@ void make_gui()
 
 	//Simulated CaloHits Style;
 	{
-		TGGroupFrame *frmHitColour = new TGGroupFrame(frmMain, "SimCaloHit Color: ");   
+		TGGroupFrame *frmHitColour = new TGGroupFrame(frmMain, "Calo. Hit Color: ");   
 		frmMain->AddFrame(frmHitColour, new TGLayoutHints(kLHintsNormal, 2, 2, 0, 0));
 
 		TGComboBox* menuHitColour = new TGComboBox(frmHitColour);
@@ -206,7 +210,7 @@ void make_gui()
 		menuHitColour->AddEntry("EM, Had & Neutron", 5);
 		menuHitColour->AddEntry("Timing/ns", 6);
 		menuHitColour->AddEntry("MCParticle Color", 7);
-		menuHitColour->Select(0, kFALSE);		//Default choice: Color with PID
+		menuHitColour->Select(7, kFALSE);		//Default choice: MCParticle Color
 		//menuHitColour->Connect("Selected(Int_t)", "EventNavigator", fh, "setCellColour(Int_t)");
 		menuHitColour->Connect("Selected(int)", "EventNavigator", fh, "setCellColour(int)");
 		menuHitColour->Resize(150, 20);

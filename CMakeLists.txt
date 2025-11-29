@@ -128,3 +128,4 @@ target_link_libraries(Druid PRIVATE ${LIBRARIES} lcio)
 
 # install
 install(TARGETS Druid DESTINATION bin)
+install(DIRECTORY icons DESTINATION bin)

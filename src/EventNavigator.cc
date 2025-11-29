@@ -121,21 +121,11 @@ void EventNavigator::Bck() {
    }
    */
 
-void EventNavigator::setCollection() {
-  DefaultCollectionFlag = !DefaultCollectionFlag;
-  if (DefaultCollectionFlag) {
-    printf("   Display default collections. \n");
-    load_collections(evt, "");
-  }  // to destory...
-  else {
-    printf("   Display all collections. \n");
-    //	load_collections(evt, LCIO::CLUSTER);
-    load_collections(evt, LCIO::TRACK);
-    load_collections(evt, LCIO::VERTEX);
-    load_collections(evt, LCIO::CALORIMETERHIT);
-    load_collections(evt, LCIO::TRACKERHIT);
-  }
-  return;
+void EventNavigator::setCollection()
+{
+  printf("   Display all collections. \n");
+  UpdateHitColorsToMatchMCParticles();
+  UpdateTrackColorsByMCParticle();
 }
 
 void EventNavigator::MultiViewSwitch() {
@@ -145,7 +135,7 @@ void EventNavigator::MultiViewSwitch() {
 }
 
 void EventNavigator::setCellColour(int ds) {
-  std::cout << "INFO: ds = " << ds << std::endl;
+  std::cout << "SetCellColor: " << ds << std::endl;
   gGUIManager.HitColourType = ds;
   if (gGUIManager.HitColourType < 0) gGUIManager.HitColourType = 0;
   if (gGUIManager.HitColourType > 7) gGUIManager.HitColourType = 0;
