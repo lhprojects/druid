@@ -24,6 +24,20 @@ struct TrackerHitInfo
     }
 };
 
+struct LCObjectConnection
+{
+
+    EVENT::LCObject *m_mother = nullptr;
+    int m_motherType = 0; // 1 = Trajck, 2 = Cluster
+    double m_motherX;
+    double m_motherY;
+    double m_motherZ;
+    double m_daughterX;
+    double m_daughterY;
+    double m_daughterZ;
+
+};
+
 struct TruthHelper
 {
     std::vector<std::string> m_MCPCollNames;
@@ -36,6 +50,8 @@ struct TruthHelper
 
     std::string GetStringID(EVENT::MCParticle *mcp);
     std::string GetStringID(EVENT::Track *track);
+
+    LCObjectConnection GetTracsterConnection(EVENT::LCObject *tracster);
 
     // Get tracker hits for a given MCParticle, sorted by time
     const std::vector<TrackerHitInfo>& GetTrackerHits(EVENT::MCParticle *mcp);

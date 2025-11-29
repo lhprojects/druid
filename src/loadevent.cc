@@ -252,59 +252,6 @@ void load_event(int EventNum) {
   }
 }
 
-void loadTracks(LCEvent *evt, string coltype)
-{
-    gGUIManager._RecoTracks.clear();
-
-    std::map<string, int> DisplayFlag;
-    bool Draw = true;
-    bool ChildDraw = true;
-    
-    if (collectionClasses.find(coltype) != collectionClasses.end() &&
-        collectionClasses[coltype])
-    {
-        Draw = collectionClasses[coltype]->GetRnrSelf();
-        ChildDraw = collectionClasses[coltype]->GetRnrChildren();
-        for (TEveElement::List_i itt = collectionClasses[coltype]->BeginChildren();
-             itt != collectionClasses[coltype]->EndChildren(); itt++)
-        {
-            std::string colname = (*itt)->GetElementName();
-            if (DisplayFlag.find(colname) == DisplayFlag.end())
-            {
-                DisplayFlag[colname] = (*itt)->GetRnrSelf();
-            }
-        }
-        collectionClasses[coltype]->DestroyElements();
-        collectionClasses[coltype]->Destroy();
-    }
-    
-    collectionClasses[coltype] = new TEveElementList();
-    collectionClasses[coltype]->SetRnrSelfChildren(Draw, ChildDraw);
-    collectionClasses[coltype]->SetRnrSelf(Draw);
-    collectionClasses[coltype]->SetName(coltype.c_str());
-
-    // Get track collections to use from helper function
-    std::vector<std::string> trackCollNames = get_track_collections_to_use(evt);
-    
-    for (std::string const &collName : trackCollNames)
-    {
-        LCCollection *col = nullptr;
-        try
-        {
-            col = evt->getCollection(collName);
-        }
-        catch(...) {}
-        TEveElementList *temp = BuildTracks(col, collName);
-        if (temp)
-        {
-            bool FlagDraw = DisplayFlag.find(collName) != DisplayFlag.end() ? DisplayFlag[collName] : true;
-            temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
-            collectionClasses[coltype]->AddElement(temp);
-        }
-    }
-    UpdateTrackColorsByMCParticle();
-}
-
 void load_collections(LCEvent* evt, string coltype) {
   if (flagslcio) {
     // collection types we do not draw explicitly for the moment...

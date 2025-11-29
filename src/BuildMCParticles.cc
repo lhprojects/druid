@@ -58,9 +58,16 @@ bool IsNeutrino(int PID){
 // baseColor is the ROOT color constant (kBlue, kRed, etc.)
 // Returns a color from the color wheel (e.g., kBlue-7, kRed+2, etc.)
 int GetParticleColor(int pid, int index, int baseColor) {
-	// Use index to generate color offset in the range -6 to +6
-	int colorOffset = (index % 13) - 6;
-	return baseColor + colorOffset;
+	// Each index increases color by 2
+	// ROOT colors are valid in ranges like kBlue-9 to kBlue+10
+	int colorOffset = (index * 2) % 20 - 9;
+	int color = baseColor + colorOffset;
+	// Clamp color to safe range: baseColor-9 to baseColor+9
+	if (color > baseColor + 9) color = baseColor + 9;
+	if (color < baseColor - 9) color = baseColor - 9;
+	// Ensure color is positive
+	if (color < 1) color = baseColor;
+	return color;
 }
 
 

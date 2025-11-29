@@ -30,9 +30,40 @@ std::map<EVENT::Track *, EVENT::MCParticle* > trackMainMCP;
 std::map<EVENT::MCParticle*, MLMCPart*> mcpartIDs;
 std::map<EVENT::CalorimeterHit*, EVENT::SimCalorimeterHit *> caloHitSimCaloHitMap;
 std::map<EVENT::Track*, MLPFA::MLTrack*> m_track2MLTrack;
-
+std::map<EVENT::LCObject*, LCObjectConnection> m_tracsterConnections;
 
 TruthHelper gTruthHelper;
+
+void init_tracsterConnections()
+{
+    for(int iobj = 0; iobj < gMLPFAInputData.m_objects.size(); ++iobj)
+    {
+        MLMothered* mlMothered = gMLPFAInputData.m_objects[iobj];
+        void *originObj = ML_at(gMLPFAMetaData.m_objects, iobj);
+        EVENT::LCObject *lcObj = static_cast<EVENT::LCObject *>(originObj);
+        MLMothered* mlMother = mlMothered->getMother();
+        LCObjectConnection conn;
+        if(mlMother)
+        {
+            int motherIndex = mlMother->getFlatIndex();
+            EVENT::LCObject *lcMom = (EVENT::LCObject *)ML_at(gMLPFAMetaData.m_objects, motherIndex);
+            conn.m_mother = lcMom;
+            conn.m_motherType = mlMother->isTrack() ? 1 : (mlMother->isCluster() ? 2 : 0);
+
+            MLPFA::Vect3f motherPos = mlMothered->getMotherConnectionPoint();
+            conn.m_motherX = motherPos.x;
+            conn.m_motherY = motherPos.y;
+            conn.m_motherZ = motherPos.z;
+            MLPFA::Vect3f thisPos = mlMothered->getThisConnectionPoint();
+            conn.m_daughterX = thisPos.x;
+            conn.m_daughterY = thisPos.y;
+            conn.m_daughterZ = thisPos.z;
+            
+        }
+        m_tracsterConnections[lcObj] = conn;
+    }
+}
+
 
 void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
 {
@@ -219,6 +250,8 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         }
         catch(...) {}
     }
+
+    init_tracsterConnections();
     
     // Sort tracker hits by time for each MCParticle
     int totalHits = 0;
@@ -368,6 +401,15 @@ std::string TruthHelper::GetStringID(EVENT::Track *track)
         return "Track@Unknown";
     }
     return iter->second->getStringID();
+}
+
+LCObjectConnection TruthHelper::GetTracsterConnection(EVENT::LCObject *tracster)
+{
+    auto iter = m_tracsterConnections.find(tracster);
+    if(iter !=  m_tracsterConnections.end()) {
+        return iter->second;
+    }
+    return LCObjectConnection();
 }
 
 

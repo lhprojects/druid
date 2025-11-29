@@ -11,9 +11,11 @@
 #include "TEveTrackPropagator.h"
 #include "TEveVSDStructs.h"
 #include "TEvePathMark.h"
+#include "TEveArrow.h"
 #include "TVector3.h"
 #include "lcio.h"
 #include "EVENT/LCCollection.h"
+#include "EVENT/LCEvent.h"
 #include "EVENT/Track.h"
 #include "EVENT/TrackerHit.h"
 #include "GlobalDefs.hh"
@@ -22,6 +24,7 @@
 #include "TruthHelper.h"
 #include <iostream>
 #include <map>
+#include <algorithm>
 
 using namespace lcio;
 using namespace EVENT;
@@ -29,13 +32,13 @@ using namespace std;
 
 extern int GlobalRandomColorIndex;
 
-TEveElementList* BuildTracks(LCCollection* col, string name)
+std::pair<TEveElementList*, TEveElementList*> BuildTracks(LCCollection* col, string name)
 {
     // Filter track collections based on command line options
     if(gOptions.coll_track_collections.size() > 0) {
         if(!equals_any(name, gOptions.coll_track_collections)) {
             cout << "  Skipping track collection: " << name << " (not in -coll.track.add list)" << endl;
-            return nullptr;
+            return std::make_pair(nullptr, nullptr);
         }
     }
     
@@ -43,8 +46,12 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
          << ". Number of Tracks: " << col->getNumberOfElements() << endl;
 
     TEveTrackList* trackList = new TEveTrackList();
-    trackList->SetName(name.c_str());
+    trackList->SetName((name).c_str());
     trackList->SetMainColor(kBlue);
+    
+    TEveElementList* connectionList = new TEveElementList();
+    connectionList->SetName((name + "_conn").c_str());
+    connectionList->SetMainColor(kOrange);
 
     // Create track propagator for charged tracks
     TEveTrackPropagator* propsetCharged = new TEveTrackPropagator();
@@ -174,11 +181,34 @@ TEveElementList* BuildTracks(LCCollection* col, string name)
                                 hits.size()));
 
         trackList->AddElement(eveTrack);
+        
+        // Draw mother-daughter connection arrow
+        LCObjectConnection conn = gTruthHelper.GetTracsterConnection(track);
+        if (conn.m_mother != nullptr) {
+            // Arrow from mother connection point to daughter connection point
+            float dx = conn.m_daughterX - conn.m_motherX;
+            float dy = conn.m_daughterY - conn.m_motherY;
+            float dz = conn.m_daughterZ - conn.m_motherZ;
+            
+            TEveArrow* connArrow = new TEveArrow(0.1*dx, 0.1*dy, 0.1*dz, 
+                                                  0.1*conn.m_motherX, 0.1*conn.m_motherY, 0.1*conn.m_motherZ);
+            connArrow->SetTubeR(0.02);
+            connArrow->SetConeR(0.04);
+            connArrow->SetConeL(0.3);
+            connArrow->SetMainColor(kOrange);
+            connArrow->SetTitle(Form("Mother-Daughter Connection\nMother type: %s",
+                                     conn.m_motherType == 1 ? "Track" : "Cluster"));
+            
+            connectionList->AddElement(connArrow);
+        }
     }
 
     trackList->MakeTracks();  
-    trackList->SetRnrSelfChildren(kTRUE, kTRUE);  
-    return trackList;
+    trackList->SetRnrSelfChildren(kTRUE, kTRUE);
+    
+    connectionList->SetRnrSelfChildren(kTRUE, kTRUE);
+    
+    return std::make_pair(trackList, connectionList);
 }
 
 // Function to update reconstructed Track colors to match MCParticle colors
@@ -237,4 +267,64 @@ void UpdateTrackColorsByMCParticle() {
     
     std::cout << "Updated " << updatedCount << " tracks with MCP colors, " 
               << grayCount << " tracks set to gray" << std::endl;
+}
+
+void loadTracks(LCEvent *evt, string coltype)
+{
+    gGUIManager._RecoTracks.clear();
+
+    std::map<string, int> DisplayFlag;
+    bool Draw = true;
+    bool ChildDraw = true;
+    
+    extern std::map<string, TEveElementList*> collectionClasses;
+    
+    if (collectionClasses.find(coltype) != collectionClasses.end() &&
+        collectionClasses[coltype])
+    {
+        Draw = collectionClasses[coltype]->GetRnrSelf();
+        ChildDraw = collectionClasses[coltype]->GetRnrChildren();
+        for (TEveElement::List_i itt = collectionClasses[coltype]->BeginChildren();
+             itt != collectionClasses[coltype]->EndChildren(); itt++)
+        {
+            std::string colname = (*itt)->GetElementName();
+            if (DisplayFlag.find(colname) == DisplayFlag.end())
+            {
+                DisplayFlag[colname] = (*itt)->GetRnrSelf();
+            }
+        }
+        collectionClasses[coltype]->DestroyElements();
+        collectionClasses[coltype]->Destroy();
+    }
+    
+    collectionClasses[coltype] = new TEveElementList();
+    collectionClasses[coltype]->SetRnrSelfChildren(Draw, ChildDraw);
+    collectionClasses[coltype]->SetRnrSelf(Draw);
+    collectionClasses[coltype]->SetName(coltype.c_str());
+
+    // Get track collections to use from helper function
+    std::vector<std::string> trackCollNames = get_track_collections_to_use(evt);
+    
+    for (std::string const &collName : trackCollNames)
+    {
+        LCCollection *col = nullptr;
+        try
+        {
+            col = evt->getCollection(collName);
+        }
+        catch(...) {}
+        auto result = BuildTracks(col, collName);
+        if (result.first)
+        {
+            bool FlagDraw = DisplayFlag.find(collName) != DisplayFlag.end() ? DisplayFlag[collName] : true;
+            result.first->SetRnrSelfChildren(FlagDraw, FlagDraw);
+            collectionClasses[coltype]->AddElement(result.first);
+            
+            if (result.second) {
+                result.second->SetRnrSelfChildren(FlagDraw, FlagDraw);
+                collectionClasses[coltype]->AddElement(result.second);
+            }
+        }
+    }
+    UpdateTrackColorsByMCParticle();
 }

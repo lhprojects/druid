@@ -164,7 +164,7 @@ TEveElementList* createSimCaloHits(LCCollection* col, std::string name);
 TEveElementList* CaloHits( LCCollection* col, std::string hh);
 TEveElementList* TrackerHits( LCCollection* col, std::string hh);
 TEveElementList* TrackAssignedHits( LCCollection* col, std::string hh );
-TEveElementList* BuildTracks( LCCollection* col, std::string hh );
+void loadTracks(EVENT::LCEvent *evt, std::string coltype);
 TEveElementList* ClusterHits( LCCollection* col, std::string hh);
 TEveElementList* Vertex(LCCollection* col, std::string hh);
 TEveElementList* BuildMCParticles( LCEvent* evt, std::vector<std::string> const &mcpartcollnames);

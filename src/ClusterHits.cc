@@ -31,6 +31,7 @@
 #include "point.h"
 #include "segment3.h"
 #include "GlobalDefs.hh"
+#include "TruthHelper.h"
 
 using namespace lcio;
 using namespace std;
@@ -92,15 +93,6 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
 		Recocluster->SetName(Form("Clu En=%.3f/", ClusterEnergy));
 		// std::cout<<"CLUSTERPIDTYPE "<<ClusterPID<<std::endl;
 
-		{
-			TEveArrow* a1 = new TEveArrow(cluDir.X(), cluDir.Y(), cluDir.Z(), 0.1*cluPos.X(), 0.1*cluPos.Y(), 0.1*cluPos.Z());
-			a1->SetTubeR(0.01);
-			a1->SetConeR(0.03);
-			a1->SetConeL(0.2);
-			a1->SetMainColor(3);
-			CaloCluster->AddElement(a1);
-		}
-
 		LocalRandomIndex = int(100*r0->Rndm(iC));
 
 		if(true)
@@ -156,6 +148,25 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
 		}
 
 		CaloCluster->AddElement(Recocluster);
+		
+		// Draw mother-daughter connection arrow
+		LCObjectConnection conn = gTruthHelper.GetTracsterConnection(acluster);
+		if (conn.m_mother != nullptr) {
+			// Arrow from mother connection point to daughter connection point
+			float dx = conn.m_daughterX - conn.m_motherX;
+			float dy = conn.m_daughterY - conn.m_motherY;
+			float dz = conn.m_daughterZ - conn.m_motherZ;
+			
+			TEveArrow* connArrow = new TEveArrow(0.1*dx, 0.1*dy, 0.1*dz, 
+			                                      0.1*conn.m_motherX, 0.1*conn.m_motherY, 0.1*conn.m_motherZ);
+			connArrow->SetTubeR(0.02);
+			connArrow->SetConeR(0.04);
+			connArrow->SetConeL(0.3);
+			connArrow->SetMainColor(kOrange);
+			connArrow->SetTitle(Form("Mother-Daughter Connection\nMother type: %s",
+			                         conn.m_motherType == 1 ? "Track" : "Cluster"));
+			Recocluster->AddElement(connArrow);
+		}
 	}	
 
 	// GlobalRandomColorIndex++;
