@@ -348,7 +348,7 @@ void DrawTPCCylinder(double innerRadius, double outerRadius, double halfZ) {
 	TEveGeoShape* innerShape = new TEveGeoShape("TPC Inner Radius");
 	innerShape->SetShape(innerTube);
 	innerShape->SetMainColor(gOptions.tpc_innerBarrelColor);
-	innerShape->SetMainTransparency(80);
+	innerShape->SetMainTransparency(30);
 	innerShape->SetLineColor(gOptions.tpc_innerBarrelColor);
 	innerShape->SetLineWidth(2);
 	gEve->AddGlobalElement(innerShape);
