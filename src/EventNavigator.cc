@@ -123,9 +123,19 @@ void EventNavigator::Bck() {
 
 void EventNavigator::setCollection()
 {
-  printf("   Display all collections. \n");
-  UpdateHitColorsToMatchMCParticles();
-  UpdateTrackColorsByMCParticle();
+    printf(" Update colors \n");
+
+    if (gGUIManager.HitColourType == 7)
+    {
+        UpdateHitColorsToMatchMCParticles();
+        UpdateTrackColorsByMCParticle();
+    }
+    else
+    {
+        load_collections(evt, LCIO::TRACK);
+        load_collections(evt, LCIO::SIMCALORIMETERHIT);
+        load_collections(evt, LCIO::CALORIMETERHIT);
+    }
 }
 
 void EventNavigator::MultiViewSwitch() {
