@@ -30,9 +30,56 @@ std::map<EVENT::Track *, EVENT::MCParticle* > trackMainMCP;
 std::map<EVENT::MCParticle*, MLMCPart*> mcpartIDs;
 std::map<EVENT::CalorimeterHit*, EVENT::SimCalorimeterHit *> caloHitSimCaloHitMap;
 std::map<EVENT::Track*, MLPFA::MLTrack*> m_track2MLTrack;
+std::map<EVENT::Cluster*, MLPFA::MLCluster*> m_cluster2MLCluster;
 std::map<EVENT::LCObject*, LCObjectConnection> m_tracsterConnections;
 
 TruthHelper gTruthHelper;
+
+void init_clusters()
+{
+    
+    for(int icluster = 0; icluster < (int)gLCIOData.m_clusters.size(); ++icluster)
+    {
+        EVENT::Cluster *cluster = ML_at(gLCIOData.m_clusters, icluster);
+        MLCluster *mlCluster = ML_at(gMLPFAInputData.m_clusters, icluster);
+        m_cluster2MLCluster[cluster] = mlCluster;
+    }
+
+    for (auto &pair : mcTruthAns.m_cluster2MainPart)
+    {
+        PFAA::Cluster *cluster = pair.first;
+        PFAA::MCPart *mcp = pair.second;
+        int index = mcp->getIndex();
+        int clusterIndex = cluster->getIndex();
+        EVENT::MCParticle *mcPart = ML_at(gLCIOData.m_mcParts, index);
+        EVENT::Cluster *lcCluster = ML_at(gLCIOData.m_clusters, clusterIndex);
+        mainMCParticles[lcCluster] = mcPart;
+    }
+}
+
+void init_tracks()
+{
+    
+    for(int itrack = 0; itrack < (int)gLCIOData.m_tracks.size(); ++itrack)
+    {
+        EVENT::Track *track = ML_at(gLCIOData.m_tracks, itrack);
+        MLTrack *mltrack = ML_at(gMLPFAInputData.m_tracks, itrack);
+        std::cout << "Mapping LCIO Track " << itrack
+                  << " to MLTrack " << mltrack->getStringID() << std::endl;
+        m_track2MLTrack[track] = mltrack;
+    }
+
+    for (auto &pair : mcTruthAns.m_track2MainPart)
+    {
+        PFAA::Track *track = pair.first;
+        PFAA::MCPart *mcp = pair.second;
+        int index = mcp->getIndex();
+        int trackIndex = track->getIndex();
+        EVENT::MCParticle *mcPart = ML_at(gLCIOData.m_mcParts, index);
+        EVENT::Track *lcTrack =  ML_at(gLCIOData.m_tracks, trackIndex);
+        trackMainMCP[lcTrack] = mcPart;
+    }
+}
 
 void init_tracsterConnections()
 {
@@ -90,12 +137,14 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
 
     simCaloHitMainMCP.clear();
     caloHitMainMCP.clear();
-    trackMainMCP.clear();
-    mainMCParticles.clear();
     mcpartIDs.clear();
     caloHitSimCaloHitMap.clear();
     m_mcpTrackerHits.clear();
+    mainMCParticles.clear();
+    m_cluster2MLCluster.clear();
+    trackMainMCP.clear();
     m_track2MLTrack.clear();
+
 
 
     MLPFA::MLGeom::instance().setBField(gOptions.BField);
@@ -189,21 +238,9 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
 
     mlpfa_reader.fillInputData(evt, gLCIOData, mcTruthAns, gMLPFAInputData, gMLPFAMetaData);
 
-    for(int iobj = 0; iobj < gMLPFAInputData.m_objects.size(); ++iobj)
-    {
-        MLMothered* mlMothered = gMLPFAInputData.m_objects[iobj];
-        if(mlMothered->isCluster())
-        {
-            MLCluster *mlCluster = static_cast<MLCluster*>(mlMothered);
-            MLMCPart* mlPart = mlCluster->getTrueMainMCPart();
-            int index = mlPart->getIndex();
-            void *ptr = ML_at(gMLPFAMetaData.m_MCParts, index);
-            EVENT::MCParticle* mcp = static_cast<EVENT::MCParticle*>(ptr);
-            void *originCluster = ML_at(gMLPFAMetaData.m_objects, iobj);
-            EVENT::Cluster *cluster = static_cast<EVENT::Cluster *>(originCluster);
-            mainMCParticles[cluster] = mcp;
-        }
-    }
+    init_clusters();
+    init_tracks();
+
     for(int ilink = 0; ilink < gLCIOData.m_caloHitLinks.size(); ++ilink)
     {
         EVENT::LCRelation *rel = gLCIOData.m_caloHitLinks[ilink];
@@ -223,24 +260,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         MLMCPart *mlPart = ML_at(gMLPFAInputData.m_MCParts, ipart);
         mcpartIDs[mcPart] = mlPart;
     }
-    for(int itrack = 0; itrack < (int)gLCIOData.m_tracks.size(); ++itrack)
-    {
-        EVENT::Track *track = ML_at(gLCIOData.m_tracks, itrack);
-        MLTrack *mltrack = ML_at(gMLPFAInputData.m_tracks, itrack);
-        m_track2MLTrack[track] = mltrack;
-    }
-
-
-    for (auto &pair : mcTruthAns.m_track2MainPart)
-    {
-        PFAA::Track *track = pair.first;
-        PFAA::MCPart *mcp = pair.second;
-        int index = mcp->getIndex();
-        int trackIndex = track->getIndex();
-        EVENT::MCParticle *mcPart = ML_at(gLCIOData.m_mcParts, index);
-        EVENT::Track *lcTrack =  ML_at(gLCIOData.m_tracks, trackIndex);
-        trackMainMCP[lcTrack] = mcPart;
-    }
+    
 
     // Read all SimTrackerHit collections and organize by MCParticle
     for(std::string const &name : *collNames)
@@ -433,6 +453,27 @@ std::string TruthHelper::GetStringID(EVENT::Track *track)
         return "Track@Unknown";
     }
     return iter->second->getStringID();
+}
+
+std::string TruthHelper::GetStringID(EVENT::Cluster *cluster)
+{
+    if(cluster == nullptr) {
+        return "Clu@Null";
+    }
+    auto iter = m_cluster2MLCluster.find(cluster);
+    if(iter == m_cluster2MLCluster.end()) {
+        std::cout << "Cluster not found in m_cluster2MLCluster map: " << cluster << std::endl;
+        std::cout << "Cluster not found in m_cluster2MLCluster map: " << cluster << std::endl;
+        std::cout << "Cluster not found in m_cluster2MLCluster map: " << cluster << std::endl;
+        std::cout << "Cluster not found in m_cluster2MLCluster map: " << cluster << std::endl;
+        std::cout << "Cluster not found in m_cluster2MLCluster map: " << cluster << std::endl;
+        std::cout << "Cluster not found in m_cluster2MLCluster map: " << cluster << std::endl;
+        std::cout << "Cluster not found in m_cluster2MLCluster map: " << cluster << std::endl;
+        std::cout << "Cluster not found in m_cluster2MLCluster map: " << cluster << std::endl;
+
+        return "Clu@Unknown";
+    }
+    return getStringID(iter->second);
 }
 
 LCObjectConnection TruthHelper::GetTracsterConnection(EVENT::LCObject *tracster)

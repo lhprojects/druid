@@ -105,7 +105,7 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
 		CluSize = Hits.size();
 		ClusterEnergy = acluster->getEnergy();
 		ClusterPID = acluster->getType();
-		Recocluster->SetName(Form("Clu En=%.3f/", ClusterEnergy));
+		Recocluster->SetName(Form("%s, En=%.3f", gTruthHelper.GetStringID(acluster).c_str(), ClusterEnergy));
 		// std::cout<<"CLUSTERPIDTYPE "<<ClusterPID<<std::endl;
 
 		LocalRandomIndex = int(100*r0->Rndm(iC));

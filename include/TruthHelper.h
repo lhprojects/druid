@@ -50,6 +50,7 @@ struct TruthHelper
 
     std::string GetStringID(EVENT::MCParticle *mcp);
     std::string GetStringID(EVENT::Track *track);
+    std::string GetStringID(EVENT::Cluster *cluster);
 
     LCObjectConnection GetTracsterConnection(EVENT::LCObject *tracster);
 
