@@ -181,5 +181,6 @@ TVector3 GetAhcalHitPos(int LayerIDs, int ChipIDs, int ChannelIDs);
 
 // Get track collection names to use: either from command line or all track collections from event
 std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt);
+std::vector<std::string> get_cluster_collections_to_use(EVENT::LCEvent *evt);
 
 #endif //GLOBALDEFS_H_

@@ -494,8 +494,10 @@ void load_collections(LCEvent* evt, string coltype) {
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::CLUSTER) {
         TEveElementList* temp = ClusterHits(col, collName);
-        temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
-        collectionClasses[ct]->AddElement(temp);
+        if (temp) {
+          temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
+          collectionClasses[ct]->AddElement(temp);
+        }
       } else {
         cout << "  Unknown collection type " << col->getTypeName()
              << " for collection " << collName << endl

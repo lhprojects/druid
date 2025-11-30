@@ -44,7 +44,9 @@ std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt)
     // If command line specifies track collections, use them unconditionally
     if(!gOptions.coll_track_collections.empty())
     {
-        return gOptions.coll_track_collections;
+        result = gOptions.coll_track_collections;
+        std::sort(result.begin(), result.end());
+        return result;
     }
     
     // Otherwise, find all track collections in the event
@@ -62,6 +64,38 @@ std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt)
         catch(...) {}
     }
     
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+std::vector<std::string> get_cluster_collections_to_use(EVENT::LCEvent *evt)
+{
+    std::vector<std::string> result;
+    
+    // If command line specifies cluster collections, use them unconditionally
+    if(!gOptions.coll_cluster_collections.empty())
+    {
+        result = gOptions.coll_cluster_collections;
+        std::sort(result.begin(), result.end());
+        return result;
+    }
+    
+    // Otherwise, find all cluster collections in the event
+    const std::vector<std::string> *collNames = evt->getCollectionNames();
+    for(std::string const &name : *collNames)
+    {
+        try
+        {
+            EVENT::LCCollection *col = evt->getCollection(name);
+            if(col->getTypeName() == lcio::LCIO::CLUSTER && col->getNumberOfElements() > 0)
+            {
+                result.push_back(name);
+            }
+        }
+        catch(...) {}
+    }
+    
+    std::sort(result.begin(), result.end());
     return result;
 }
 

@@ -21,6 +21,7 @@ struct Options
     std::vector<std::string> coll_simCaloHit_filterOutSuffixes;
     std::vector<std::string> coll_MCP_collections;
     std::vector<std::string> coll_track_collections;
+    std::vector<std::string> coll_cluster_collections;
     
     Options();
     void parse(int &argc, char** &argv);

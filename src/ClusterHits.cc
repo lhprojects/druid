@@ -28,6 +28,8 @@
 #include "trajectory.h"
 #include "fitting_root.h"
 #include "geometry.h"
+#include "Options.h"
+#include "GlobalDefs.hh"
 #include "point.h"
 #include "segment3.h"
 #include "GlobalDefs.hh"
@@ -48,6 +50,13 @@ TRandom *r0 = new TRandom();
 
 TEveElementList* ClusterHits( LCCollection* col, string name)
 {
+	// Filter cluster collections based on command line options
+	if(gOptions.coll_cluster_collections.size() > 0) {
+		if(!equals_any(name, gOptions.coll_cluster_collections)) {
+			cout << "  Skipping cluster collection: " << name << " (not in -coll.cluster.add list)" << endl;
+			return nullptr;
+		}
+	}
 
 	cout<<"  Cluster collection: "<<name.c_str()<<". Number of Cluster: "<<col->getNumberOfElements()<<endl;
 	cout<<endl;

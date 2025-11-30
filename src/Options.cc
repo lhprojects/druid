@@ -145,6 +145,8 @@ void Options::parse(int &argc, char** &argv) {
         {
         } else if(add_string(argc, argv, i, "-coll.track.add", coll_track_collections)) 
         {
+        } else if(add_string(argc, argv, i, "-coll.cluster.add", coll_cluster_collections)) 
+        {
         } else {
             if(argv[i][0] == '-') {
                 std::cerr << "Error: Unknown option " << argv[i] << "\n";

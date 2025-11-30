@@ -113,6 +113,19 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         catch(...) {}
     }
     
+    // Set up cluster collection names using the helper function
+    mlpfa_reader.m_ClusterCollectionName = get_cluster_collections_to_use(evt);
+    for(std::string const &name : mlpfa_reader.m_ClusterCollectionName)
+    {
+        try
+        {
+            EVENT::LCCollection *col = evt->getCollection(name);
+            std::cout << "Found Cluster collection: " << name << " with " 
+                      << col->getNumberOfElements() << " clusters" << std::endl;
+        }
+        catch(...) {}
+    }
+    
     // Set up relation collection names for CaloHit-SimCaloHit links
     mlpfa_reader.m_RelCaloHitCollectionNames.clear();    
     // Set up relation collection names for TrackerHit-SimTrackerHit links
