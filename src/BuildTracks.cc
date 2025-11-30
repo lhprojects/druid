@@ -317,7 +317,8 @@ void loadTracks(LCEvent *evt, string coltype)
 }
 
 // Helper function to create arrow for mother-daughter connections
-TEveArrow* createConnectionArrow(LCObjectConnection const &conn) {
+TEveArrow* createConnectionArrow(LCObjectConnection const &conn)
+{
 	if (conn.m_mother == nullptr) return nullptr;
 	
 	// Arrow from mother connection point to daughter connection point

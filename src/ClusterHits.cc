@@ -23,6 +23,8 @@
 #include "TEvePointSet.h"
 #include "TVector3.h"
 #include "TEveArrow.h"
+#include "TEveGeoShape.h"
+#include "TGeoSphere.h"
 #include "TRandom3.h"
 
 #include "trajectory.h"
@@ -58,8 +60,7 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
 		}
 	}
 
-	cout<<"  Cluster collection: "<<name.c_str()<<". Number of Cluster: "<<col->getNumberOfElements()<<endl;
-	cout<<endl;
+	std::cout<<"  Cluster collection: "<<name.c_str()<<". Number of Cluster: "<<col->getNumberOfElements()<<endl;
 	TEveElementList* CaloCluster = new TEveElementList;
 	CaloCluster->SetName(name.c_str());
 	CaloCluster->SetMainColor(5);
@@ -92,10 +93,15 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
 		TEveElementList* Recocluster = new TEveElementList;
 		Recocluster->SetMainColor(iC);
 
-		Cluster* acluster  = dynamic_cast<Cluster*>( col->getElementAt(iC) );
-		cluPos = acluster->getPosition();
-		cluDir = 10.0/cluPos.Mag()*cluPos; 
-		CalorimeterHitVec Hits = acluster->getCalorimeterHits();
+	Cluster* acluster  = dynamic_cast<Cluster*>( col->getElementAt(iC) );
+	cluPos = acluster->getPosition();
+	float cluPosMag = cluPos.Mag();
+	if(cluPosMag > 0) {
+		cluDir = 10.0/cluPosMag*cluPos;
+	} else {
+		cluDir.SetXYZ(0, 0, 0);
+	}
+	CalorimeterHitVec Hits = acluster->getCalorimeterHits();
 		CluSize = Hits.size();
 		ClusterEnergy = acluster->getEnergy();
 		ClusterPID = acluster->getType();
@@ -154,21 +160,32 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
 				q->SetPickable(kTRUE);
 				Recocluster->AddElement(q);
 			}
-		}
+        }
 
-		CaloCluster->AddElement(Recocluster);
-		
-		// Draw mother-daughter connection arrow
-		LCObjectConnection conn = gTruthHelper.GetTracsterConnection(acluster);
-		TEveArrow* connArrow = createConnectionArrow(conn);
-		if (connArrow) {
-			Recocluster->AddElement(connArrow);
-		}
-	}	
+        CaloCluster->AddElement(Recocluster);
 
-	// GlobalRandomColorIndex++;
+        // Draw mother-daughter connection arrow
+        LCObjectConnection conn = gTruthHelper.GetTracsterConnection(acluster);
+        TEveArrow *connArrow = createConnectionArrow(conn);
+        if (connArrow)
+        {
+            Recocluster->AddElement(connArrow);
+        }
+        else
+        {
+            // No mother connection - draw a sphere at cluster start position
+            TGeoSphere *sphere = new TGeoSphere(0, 2.0);  // 2 cm radius sphere
+            TEveGeoShape *marker = new TEveGeoShape("Primary");
+            marker->SetShape(sphere);
+            marker->SetMainColor(kYellow);
+            marker->SetMainTransparency(0);
+            marker->RefMainTrans().SetPos(0.1 * conn.m_daughterX, 0.1 * conn.m_daughterY, 0.1 * conn.m_daughterZ);
+            marker->SetTitle("Primary cluster");
+            Recocluster->AddElement(marker);
+        }
+    } // GlobalRandomColorIndex++;
 
-	return CaloCluster;
+    return CaloCluster;
 }
 
 

@@ -59,6 +59,23 @@ void init_tracsterConnections()
             conn.m_daughterY = thisPos.y;
             conn.m_daughterZ = thisPos.z;
             
+        } else {
+            conn.m_mother = nullptr;
+            conn.m_motherType = 0;
+            // For primary objects without mother, use their own start point as daughter position
+            if(mlMothered->isCluster()) {
+                MLPFA::MLCluster* cluster = static_cast<MLPFA::MLCluster*>(mlMothered);
+                MLPFA::Vect3f startPos = cluster->getTrueStartPoint();
+                conn.m_daughterX = startPos.x;
+                conn.m_daughterY = startPos.y;
+                conn.m_daughterZ = startPos.z;
+            } else if(mlMothered->isTrack()) {
+                MLPFA::MLTrack* track = static_cast<MLPFA::MLTrack*>(mlMothered);
+                MLPFA::Vect3f startPos = track->m_startPoint;
+                conn.m_daughterX = startPos.x;
+                conn.m_daughterY = startPos.y;
+                conn.m_daughterZ = startPos.z;
+            }
         }
         m_tracsterConnections[lcObj] = conn;
     }
