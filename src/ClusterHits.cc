@@ -148,18 +148,19 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
 				}
 				if(Flag_AttachTextToHit)
 				{
-					q->SetTitle(Form( "CLUSTER (%s) Calo Hit, EventNr = %d\n"
-								"Hit Energy=%.3f keV\n"
-								"PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n"
-								"PFOPDG = %d, PFOCharge = %f, PFOEnergy = %f\n"
-								"Cluster Energy = %f GeV\n"
-								"Cluster PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n", 
-								name.c_str(), gDisplayState.getEventNumber(), HitEn*1000000, 10*HitPosition[0], 10*HitPosition[1], 10*HitPosition[2],
-								0, 0., 0., ClusterEnergy, cluPos[0], cluPos[1], cluPos[2]));
+					q->SetTitle(Form("CluserHit%d, En = %.3f keV\n"
+									 "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n"
+									 "Cluster Energy = %f GeV\n"
+									 "Cluster PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n",
+									 j,
+									 HitEn * 1E6, 10 * HitPosition[0], 10 * HitPosition[1], 10 * HitPosition[2],
+									 ClusterEnergy, cluPos[0], cluPos[1], cluPos[2]));
 				}
-				q->SetPickable(kTRUE);
-				Recocluster->AddElement(q);
-			}
+                q->SetPickable(kTRUE);
+                if(1) {
+                    Recocluster->AddElement(q);
+                }
+            }
         }
 
         CaloCluster->AddElement(Recocluster);
@@ -169,19 +170,23 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
         TEveArrow *connArrow = createConnectionArrow(conn);
         if (connArrow)
         {
-            Recocluster->AddElement(connArrow);
+            if(1) {
+                Recocluster->AddElement(connArrow);
+            }
         }
         else
         {
-            // No mother connection - draw a sphere at cluster start position
-            TGeoSphere *sphere = new TGeoSphere(0, 2.0);  // 2 cm radius sphere
-            TEveGeoShape *marker = new TEveGeoShape("Primary");
-            marker->SetShape(sphere);
-            marker->SetMainColor(kYellow);
-            marker->SetMainTransparency(0);
-            marker->RefMainTrans().SetPos(0.1 * conn.m_daughterX, 0.1 * conn.m_daughterY, 0.1 * conn.m_daughterZ);
-            marker->SetTitle("Primary cluster");
-            Recocluster->AddElement(marker);
+            if(1) {
+                // No mother connection - draw a sphere at cluster start position
+                TGeoSphere *sphere = new TGeoSphere(0, 2.0);  // 2 cm radius sphere
+                TEveGeoShape *marker = new TEveGeoShape("Primary");
+                marker->SetShape(sphere);
+                marker->SetMainColor(kYellow);
+                marker->SetMainTransparency(20);
+                marker->RefMainTrans().SetPos(0.1 * conn.m_daughterX, 0.1 * conn.m_daughterY, 0.1 * conn.m_daughterZ);
+                marker->SetTitle("Primary cluster");
+                Recocluster->AddElement(marker);
+            }
         }
     } // GlobalRandomColorIndex++;
 

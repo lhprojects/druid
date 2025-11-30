@@ -64,8 +64,10 @@ void init_tracks()
     {
         EVENT::Track *track = ML_at(gLCIOData.m_tracks, itrack);
         MLTrack *mltrack = ML_at(gMLPFAInputData.m_tracks, itrack);
-        std::cout << "Mapping LCIO Track " << itrack
-                  << " to MLTrack " << mltrack->getStringID() << std::endl;
+        if(false) {
+            std::cout << "Mapping LCIO Track " << itrack
+                    << " to MLTrack " << mltrack->getStringID() << std::endl;
+        }
         m_track2MLTrack[track] = mltrack;
     }
 
@@ -105,7 +107,16 @@ void init_tracsterConnections()
             conn.m_daughterX = thisPos.x;
             conn.m_daughterY = thisPos.y;
             conn.m_daughterZ = thisPos.z;
-            
+
+            if(conn.m_daughterX == conn.m_motherX &&
+               conn.m_daughterY == conn.m_motherY &&
+               conn.m_daughterZ == conn.m_motherZ)
+            {
+                std::cout << "daugher -> mother" << conn.m_daughterX << "," << conn.m_daughterY << "," << conn.m_daughterZ
+                          << conn.m_motherX << "," << conn.m_motherY << "," << conn.m_motherZ << std::endl;
+                std::cout << "Warning: Mother and daughter connection points are identical for LCObject "
+                          << getStringID(mlMothered) << " and its mother " << getStringID(mlMother) << std::endl;
+            }
         } else {
             conn.m_mother = nullptr;
             conn.m_motherType = 0;
@@ -400,8 +411,10 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
             }
             else
             {
-                std::cout << "  Ignoring final segment with only " << currentSegment.size() 
-                          << " hits (< " << minSegmentSize << ")" << std::endl;
+                if(0) {
+                    std::cout << "  Ignoring final segment with only " << currentSegment.size() 
+                            << " hits (< " << minSegmentSize << ")" << std::endl;
+                }
             }
         }
         
