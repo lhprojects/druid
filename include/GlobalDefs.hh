@@ -183,4 +183,9 @@ TVector3 GetAhcalHitPos(int LayerIDs, int ChipIDs, int ChannelIDs);
 std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt);
 std::vector<std::string> get_cluster_collections_to_use(EVENT::LCEvent *evt);
 
+// Forward declaration for arrow creation
+class TEveArrow;
+struct LCObjectConnection;
+TEveArrow* createConnectionArrow(LCObjectConnection const &conn);
+
 #endif //GLOBALDEFS_H_

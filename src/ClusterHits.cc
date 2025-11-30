@@ -160,20 +160,8 @@ TEveElementList* ClusterHits( LCCollection* col, string name)
 		
 		// Draw mother-daughter connection arrow
 		LCObjectConnection conn = gTruthHelper.GetTracsterConnection(acluster);
-		if (conn.m_mother != nullptr) {
-			// Arrow from mother connection point to daughter connection point
-			float dx = conn.m_daughterX - conn.m_motherX;
-			float dy = conn.m_daughterY - conn.m_motherY;
-			float dz = conn.m_daughterZ - conn.m_motherZ;
-			
-			TEveArrow* connArrow = new TEveArrow(0.1*dx, 0.1*dy, 0.1*dz, 
-			                                      0.1*conn.m_motherX, 0.1*conn.m_motherY, 0.1*conn.m_motherZ);
-			connArrow->SetTubeR(0.02);
-			connArrow->SetConeR(0.04);
-			connArrow->SetConeL(0.3);
-			connArrow->SetMainColor(kOrange);
-			connArrow->SetTitle(Form("Mother-Daughter Connection\nMother type: %s",
-			                         conn.m_motherType == 1 ? "Track" : "Cluster"));
+		TEveArrow* connArrow = createConnectionArrow(conn);
+		if (connArrow) {
 			Recocluster->AddElement(connArrow);
 		}
 	}	

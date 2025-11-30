@@ -184,21 +184,8 @@ std::pair<TEveElementList*, TEveElementList*> BuildTracks(LCCollection* col, str
         
         // Draw mother-daughter connection arrow
         LCObjectConnection conn = gTruthHelper.GetTracsterConnection(track);
-        if (conn.m_mother != nullptr) {
-            // Arrow from mother connection point to daughter connection point
-            float dx = conn.m_daughterX - conn.m_motherX;
-            float dy = conn.m_daughterY - conn.m_motherY;
-            float dz = conn.m_daughterZ - conn.m_motherZ;
-            
-            TEveArrow* connArrow = new TEveArrow(0.1*dx, 0.1*dy, 0.1*dz, 
-                                                  0.1*conn.m_motherX, 0.1*conn.m_motherY, 0.1*conn.m_motherZ);
-            connArrow->SetTubeR(0.02);
-            connArrow->SetConeR(0.04);
-            connArrow->SetConeL(0.3);
-            connArrow->SetMainColor(kOrange);
-            connArrow->SetTitle(Form("Mother-Daughter Connection\nMother type: %s",
-                                     conn.m_motherType == 1 ? "Track" : "Cluster"));
-            
+        TEveArrow* connArrow = createConnectionArrow(conn);
+        if (connArrow) {
             connectionList->AddElement(connArrow);
         }
     }
@@ -327,4 +314,32 @@ void loadTracks(LCEvent *evt, string coltype)
         }
     }
     UpdateTrackColorsByMCParticle();
+}
+
+// Helper function to create arrow for mother-daughter connections
+TEveArrow* createConnectionArrow(LCObjectConnection const &conn) {
+	if (conn.m_mother == nullptr) return nullptr;
+	
+	// Arrow from mother connection point to daughter connection point
+	float dx = conn.m_daughterX - conn.m_motherX;
+	float dy = conn.m_daughterY - conn.m_motherY;
+	float dz = conn.m_daughterZ - conn.m_motherZ;
+	float arrowLength = std::sqrt(dx*dx + dy*dy + dz*dz);
+	
+	// Make radius inversely proportional to length (as fraction of length)
+	// Target: ~2mm absolute radius, so fraction = 2mm / length
+	float targetRadius = 5.0;  // Target absolute radius in mm
+	float tubeR = targetRadius / arrowLength;  // Fraction of arrow length
+	float coneR = 2.0 * tubeR;  // Cone 2x larger than tube
+	float coneL = 0.2;  // Cone length as fraction of arrow length
+	
+	TEveArrow* connArrow = new TEveArrow(0.1*dx, 0.1*dy, 0.1*dz, 
+	                                      0.1*conn.m_motherX, 0.1*conn.m_motherY, 0.1*conn.m_motherZ);
+	connArrow->SetTubeR(tubeR);
+	connArrow->SetConeR(coneR);
+	connArrow->SetConeL(coneL);
+	connArrow->SetMainColor(kOrange);
+	connArrow->SetTitle(Form("Mother-Daughter Connection\\nMother type: %s",
+	                         conn.m_motherType == 1 ? "Track" : "Cluster"));
+	return connArrow;
 }
