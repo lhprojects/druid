@@ -8,6 +8,7 @@ struct Options
 
     double MCPtCut;
     double BField;
+    int logLevel;
     double tpc_innerRadius;
     double tpc_outerRadius;
     double tpc_halfZ;

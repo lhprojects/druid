@@ -115,6 +115,7 @@ void Options::parse(int &argc, char** &argv) {
 
     MCPtCut = 0.1;
     BField = 3.5;
+    logLevel = 0;  // 0 means no debug logging
     tpc_innerRadius = -1.0;  // negative means not set, use default from geometry
     tpc_outerRadius = -1.0;
     tpc_halfZ = -1.0;
@@ -129,6 +130,7 @@ void Options::parse(int &argc, char** &argv) {
     for (int i = 1; i < argc;) {
         if(read_double(argc, argv, i, "-MCPtCut", MCPtCut)) {
         } else if(read_double(argc, argv, i, "-BField", BField)) {
+        } else if(read_int(argc, argv, i, "-logLevel", logLevel)) {
         } else if(read_double(argc, argv, i, "-tpc.innerRadius", tpc_innerRadius)) {
         } else if(read_double(argc, argv, i, "-tpc.outerRadius", tpc_outerRadius)) {
         } else if(read_double(argc, argv, i, "-tpc.halfZ", tpc_halfZ)) {
