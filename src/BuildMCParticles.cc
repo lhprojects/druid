@@ -59,11 +59,12 @@ bool IsNeutrino(int PID){
 // Returns a color from the color wheel (e.g., kBlue-7, kRed+2, etc.)
 int GetParticleColor(int pid, int index, int baseColor) {
 	// Each index increases color by 2
-	// ROOT colors are valid in ranges like kBlue-9 to kBlue+10
-	int colorOffset = (index * 2) % 20 - 9;
+	// ROOT colors are valid in limited ranges: typically baseColor-9 to baseColor+4
+	// Some colors have extended ranges, but we'll use the safe common range
+	int colorOffset = (index * 2) % 14 - 9;  // Range: -9 to +4
 	int color = baseColor + colorOffset;
-	// Clamp color to safe range: baseColor-9 to baseColor+9
-	if (color > baseColor + 9) color = baseColor + 9;
+	// Clamp color to safe range: baseColor-9 to baseColor+4
+	if (color > baseColor + 4) color = baseColor + 4;
 	if (color < baseColor - 9) color = baseColor - 9;
 	// Ensure color is positive
 	if (color < 1) color = baseColor;
@@ -289,38 +290,38 @@ TEveElementList* BuildMCParticles( LCEvent *evt, std::vector<std::string> const 
 					// Classify into simplified categories
 					int absPID = abs(PID);
 					
-					// Charged Leptons: electrons, muons, taus
-					if(absPID == 11 || absPID == 13 || absPID == 15) {
-						TrType = kChargedLepton;
-						currCompound = cpdChargedLepton;
-						trackColor = GetParticleColor(PID, i, kBlue);
+				// Charged Leptons: electrons, muons, taus
+				if(absPID == 11 || absPID == 13 || absPID == 15) {
+					TrType = kChargedLepton;
+					currCompound = cpdChargedLepton;
+					trackColor = GetParticleColor(PID, i, MCTParams[kChargedLepton].Color);
 					}
-					// Charged Hadrons: pions, kaons, protons, and other charged particles
-					else {
-						TrType = kChargedHadron;
-						currCompound = cpdChargedHadron;
-						trackColor = GetParticleColor(PID, i, kRed);
+				// Charged Hadrons: pions, kaons, protons, and other charged particles
+				else {
+					TrType = kChargedHadron;
+					currCompound = cpdChargedHadron;
+					trackColor = GetParticleColor(PID, i, MCTParams[kChargedHadron].Color);
 					}
 				}
 			// Neutral particles
 			else {
-				// Neutrinos
-				if(IsNeutrino(PID)) {
-					TrType = kNeutrino;
-					currCompound = cpdNeutrinos;
-					trackColor = GetParticleColor(PID, i, kGray);
+			// Neutrinos
+			if(IsNeutrino(PID)) {
+				TrType = kNeutrino;
+				currCompound = cpdNeutrinos;
+				trackColor = MCTParams[kNeutrino].Color;
 				}
-				// Photons
-				else if(abs(PID) == 22) {
-					TrType = kPhoton;
-					currCompound = cpdPhoton;
-					trackColor = GetParticleColor(PID, i, kYellow);
+			// Photons
+			else if(abs(PID) == 22) {
+				TrType = kPhoton;
+				currCompound = cpdPhoton;
+				trackColor = GetParticleColor(PID, i, MCTParams[kPhoton].Color);
 				}
-				// Neutral Hadrons: neutrons, K_L, and all other neutral hadrons
-				else {
-					TrType = kNeutralHad;
-					currCompound = cpdNeutralHad;
-					trackColor = GetParticleColor(PID, i, kGreen);
+			// Neutral Hadrons: neutrons, K_L, and all other neutral hadrons
+			else {
+				TrType = kNeutralHad;
+				currCompound = cpdNeutralHad;
+				trackColor = GetParticleColor(PID, i, MCTParams[kNeutralHad].Color);
 				}
 			}				// Create track for charged particles
 				if(TrType != kAucune && charge != 0)
