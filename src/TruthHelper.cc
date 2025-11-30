@@ -160,6 +160,9 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     if (gOptions.tpc_outerRadius > 0) {
         MLPFA::MLGeom::instance().setTPCOuterRadius(gOptions.tpc_outerRadius);
     }
+    if (gOptions.tpc_halfZ > 0) {
+        MLPFA::MLGeom::instance().setTPCHalfZ(gOptions.tpc_halfZ);
+    }
     
     mlpfa_reader.m_MCParticleCollectionNames = m_MCPCollNames;
     

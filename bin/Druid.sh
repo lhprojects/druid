@@ -15,10 +15,11 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
  -coll.track.add MarlinTrkTracks \
  -coll.track.add ClupatraTrackSegments \
  -coll.cluster.add PandoraClusters \
- -tpc.innerRadius 330.0 \
- -tpc.outerRadius 1700.0 \
- -tpc.halfZ 2350.0 \
+ -tpc.innerRadius 372.1 \
+ -tpc.outerRadius 1692.1 \
+ -tpc.halfZ 2225 \
  -draw.tpc.cylinder \
+ -MCPtCut 0.0 \
  -logLevel 3 \
  "$@"
 
