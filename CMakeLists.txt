@@ -4,11 +4,11 @@
 #
 # The Original GNUMakefile does not work in newer ROOT and
 # LCIO version, since 2020.
-# This CMakeLists.txt builds Druid under ROOT-6.24 and 
+# This CMakeLists.txt builds Druid under ROOT-6.24 and
 # LCIO-2.16 in CentOS7 and MacOS 12.6.6
 # Note that one should go into ROOT & LCIO surrounding (
 # by `source $LCIO/setup.sh` and `source $ROOTSYS/bin/thisroot.sh`
-# ) or LCG releases (version > 100) before compiling. 
+# ) or LCG releases (version > 100) before compiling.
 ##########################################################
 
 cmake_minimum_required(VERSION 2.0 FATAL_ERROR)
@@ -20,6 +20,13 @@ set(CMAKE_CXX_COMPILER "g++")
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Add debug symbols with optimization for better performance
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O2 -fno-omit-frame-pointer")
+# Uncomment to enable AddressSanitizer (recommended for finding double-free):
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address")
 
 
 
@@ -112,9 +119,13 @@ if(UNIX AND NOT APPLE)
     list(APPEND CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
 endif()
 
-# On macOS, add @loader_path-relative fallback
+# On macOS, add @loader_path-relative fallback and ROOT library path
 if(APPLE)
     list(APPEND CMAKE_INSTALL_RPATH "@loader_path/../lib")
+    # Add ROOT library directory to RPATH
+    get_target_property(ROOT_LIBRARY_DIR ROOT::Core IMPORTED_LOCATION)
+    get_filename_component(ROOT_LIB_PATH ${ROOT_LIBRARY_DIR} DIRECTORY)
+    list(APPEND CMAKE_INSTALL_RPATH "${ROOT_LIB_PATH}")
 endif()
 
 
