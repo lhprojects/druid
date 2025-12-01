@@ -71,7 +71,7 @@ void SteerSetup(char *steeringFileName)
 	while(getline(steeringFile, line)) {
 		istringstream in(line);
 		in >> parName >> parValue;
-		if(parName.find('#') != string::npos || parValue=="") 
+		if(parName.find('#') != string::npos || parValue=="")
 			continue;
 		if(parName == "GEARFILE")
 			gearFileName = parValue;
@@ -82,7 +82,7 @@ void SteerSetup(char *steeringFileName)
             gDisplayState.setRunNumber(atoi(parValue.c_str()));
         }
         if (parName == "EVTNUMBER")
-            gDisplayState.setEventNumber(atoi (parValue.c_str()));            
+            gDisplayState.setEventNumber(atoi (parValue.c_str()));
 		if(parName == "DETECTOR")
 			detectortype = parValue;
 		if(parName == "GDMLROOTFILE")
@@ -99,9 +99,11 @@ TString ExtendName(TString inputString){
 
 int main(int argc, char *argv[])
 {
+	std::cout << "argv[0] = " << argv[0] << std::endl;
+
 	gOptions.parse(argc, argv);
 
-	if(argc == 1) 
+	if(argc == 1)
 	{
 		std::cout<<std::endl<<"Specify your steering file or input parameters with either of following format: "<<std::endl<<std::endl;
 		std::cout<<"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"<<std::endl<<std::endl;
@@ -130,33 +132,33 @@ int main(int argc, char *argv[])
 	bool flaggeoroot = kFALSE;
 	bool flaggeoxml = kFALSE;
 	bool flagEventNumber = kFALSE;
-	bool flagRunNumber = kFALSE; 
+	bool flagRunNumber = kFALSE;
 
 	if(argc == 2)
 	{
-		TString sa(argv[1]);    
+		TString sa(argv[1]);
 
 		if(ExtendName(sa) == "steer")
 		{
 			char * steeringFileName=argv[1];
 			SteerSetup(steeringFileName);
-			flagslcio = kTRUE; 
-			flagEventNumber = kTRUE; 
-			flagRunNumber = kTRUE; 
-			if(gdmlrootfileName.find("root") != string::npos) 
+			flagslcio = kTRUE;
+			flagEventNumber = kTRUE;
+			flagRunNumber = kTRUE;
+			if(gdmlrootfileName.find("root") != string::npos)
 			{
 				flaggeoroot = kTRUE;
 			}
-			else if(gearFileName.find("xml") != string::npos) 
-			{	
-				flaggeoxml = kTRUE;    
+			else if(gearFileName.find("xml") != string::npos)
+			{
+				flaggeoxml = kTRUE;
 			}
-		} 
+		}
 		else if(ExtendName(sa) == "root")
 		{
 			std::cout<<"Display only the geometry according to root gdml file"<<std::endl;
-			gdmlrootfileName = argv[1];   flaggeoroot = kTRUE; 
-		} 
+			gdmlrootfileName = argv[1];   flaggeoroot = kTRUE;
+		}
 		else if(ExtendName(sa) == "gearxml")
 		{
 			std::cout<<"Display only the geometry according to gearxml file"<<std::endl;
@@ -165,7 +167,7 @@ int main(int argc, char *argv[])
 		else if(ExtendName(sa) == "slcio")
 		{
 			std::cout<<"Display the first event in LCIO file without geometry!"<<std::endl;
-			lcioFileName = argv[1];   flagslcio = kTRUE; 
+			lcioFileName = argv[1];   flagslcio = kTRUE;
 		}
 
 	}
@@ -175,10 +177,10 @@ int main(int argc, char *argv[])
 		TString lciofile = lcioFileName;
 		if(ExtendName(lciofile) == "slcio")
 		{
-			flagslcio = kTRUE; 
+			flagslcio = kTRUE;
 
 			TString sa(argv[2]);
-			if(ExtendName(sa) == "root") 
+			if(ExtendName(sa) == "root")
 			{gdmlrootfileName = argv[2];
 				flaggeoroot = kTRUE;
 			}else if(ExtendName(sa) == "gearxml"){
@@ -189,7 +191,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		else
-		{ 
+		{
 			std::cout<<"Check your input, the first argument should be lcio file"<<std::endl;
 			std::cout << "But you input: " << lcioFileName << std::endl;
 		}
@@ -197,42 +199,42 @@ int main(int argc, char *argv[])
 	}
 	else if(argc == 4)
 	{
-		lcioFileName = argv[1];   
+		lcioFileName = argv[1];
 		flagslcio = kTRUE;
 		TString sa(argv[2]);
 
 		if(ExtendName(sa) == "root")
-		{ 
-			gdmlrootfileName = argv[2];   
+		{
+			gdmlrootfileName = argv[2];
 			flaggeoroot = kTRUE;
 		}
 		else if(ExtendName(sa) == "gearxml")
 		{
-			gearFileName = argv[2];   
+			gearFileName = argv[2];
 			flaggeoxml = kTRUE;
-		} 
-		gDisplayState.setEventNumber(atoi( argv[3] ));   
+		}
+		gDisplayState.setEventNumber(atoi( argv[3] ));
 		flagEventNumber = kTRUE;
 	}
 	else if(argc == 5)
 	{
-		lcioFileName = argv[1];	
-		flagslcio = kTRUE; 
+		lcioFileName = argv[1];
+		flagslcio = kTRUE;
 		TString sa(argv[2]);
 		if(ExtendName(sa) == "root")
 		{
-			gdmlrootfileName = argv[2];   
+			gdmlrootfileName = argv[2];
 			flaggeoroot = kTRUE;
 		}
 		else if(ExtendName(sa) == "gearxml")
 		{
-			gearFileName = argv[2];   
+			gearFileName = argv[2];
 			flaggeoxml = kTRUE;
-		}	
-		gDisplayState.setRunNumber( atoi( argv[3] ) );   
-		flagRunNumber = kTRUE; 
-		gDisplayState.setEventNumber(atoi( argv[4] ));     
-		flagEventNumber = kTRUE; 
+		}
+		gDisplayState.setRunNumber( atoi( argv[3] ) );
+		flagRunNumber = kTRUE;
+		gDisplayState.setEventNumber(atoi( argv[4] ));
+		flagEventNumber = kTRUE;
 	}
 
 	std::cout<<" Flag Status Summary: FlagGeoROOT = "<<flaggeoroot<<"\t"<<"FlagGeoXML = "<<flaggeoxml<<"\t"<<"FlagSLCIO = "<<flagslcio<<std::endl;
@@ -257,9 +259,9 @@ int main(int argc, char *argv[])
 	}
 
 	// Draw TPC cylinder if option is enabled and dimensions are provided
-	if (gOptions.draw_tpc_cylinder && 
-	    gOptions.tpc_innerRadius > 0 && 
-	    gOptions.tpc_outerRadius > 0 && 
+	if (gOptions.draw_tpc_cylinder &&
+	    gOptions.tpc_innerRadius > 0 &&
+	    gOptions.tpc_outerRadius > 0 &&
 	    gOptions.tpc_halfZ > 0) {
 		DrawTPCCylinder(gOptions.tpc_innerRadius, gOptions.tpc_outerRadius, gOptions.tpc_halfZ);
 	}
@@ -268,7 +270,7 @@ int main(int argc, char *argv[])
 
 	theApp->Run();
 
-	if(flagslcio) 
+	if(flagslcio)
 	{
 		lcReader->close();
 	}

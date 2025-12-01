@@ -106,6 +106,20 @@ bool add_string(int argc, char** argv, int &index, char const *arg, std::vector<
     }
 }
 
+bool read_string(int argc, char** argv, int &index, char const *arg, std::string &value) {
+    if (strcmp(argv[index], arg) != 0) return false;
+
+    // Check if the next argument is available and not another option
+    if (index + 1 < argc) {
+        value = argv[index+1];
+        index += 2;
+        return true;
+    } else {
+        std::cerr << "Error: " << arg << " option requires a value.\n";
+        exit(1);
+    }
+}
+
 Options::Options() 
 {
 }
@@ -124,6 +138,7 @@ void Options::parse(int &argc, char** &argv) {
     tpc_outerBarrelColor = kMagenta;
     printHelp=false;
     printVersion=false;
+    exe_path = "";  // Will be set from argv[0] if not provided via option
 
     argv_.push_back(argv[0]);
 
@@ -146,6 +161,8 @@ void Options::parse(int &argc, char** &argv) {
         } else if(add_string(argc, argv, i, "-coll.track.add", coll_track_collections)) 
         {
         } else if(add_string(argc, argv, i, "-coll.cluster.add", coll_cluster_collections)) 
+        {
+        } else if(read_string(argc, argv, i, "--exe-path", exe_path)) 
         {
         } else {
             if(argv[i][0] == '-') {
@@ -172,6 +189,10 @@ void Options::parse(int &argc, char** &argv) {
         coll_MCP_collections.push_back("MCParticles");
     }
 
+    // If exe_path was not set via --exe-path option, use argv[0]
+    if(exe_path.empty()) {
+        exe_path = argv_.at(0);
+    }
 
     argc = argv_.size();
     argv = argv_.data();

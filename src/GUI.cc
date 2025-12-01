@@ -7,7 +7,7 @@
 //    Author: Manqi Ruan (LLR)                                               //
 //                                                                           //
 //    Last Modified: 17, Nov 2011, Cleaning									 //
-//                                                                           // 
+//                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
 
@@ -40,7 +40,7 @@ GUIManager gGUIManager;
 std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt)
 {
     std::vector<std::string> result;
-    
+
     // If command line specifies track collections, use them unconditionally
     if(!gOptions.coll_track_collections.empty())
     {
@@ -48,7 +48,7 @@ std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt)
         std::sort(result.begin(), result.end());
         return result;
     }
-    
+
     // Otherwise, find all track collections in the event
     const std::vector<std::string> *collNames = evt->getCollectionNames();
     for(std::string const &name : *collNames)
@@ -63,7 +63,7 @@ std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt)
         }
         catch(...) {}
     }
-    
+
     std::sort(result.begin(), result.end());
     return result;
 }
@@ -71,7 +71,7 @@ std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt)
 std::vector<std::string> get_cluster_collections_to_use(EVENT::LCEvent *evt)
 {
     std::vector<std::string> result;
-    
+
     // If command line specifies cluster collections, use them unconditionally
     if(!gOptions.coll_cluster_collections.empty())
     {
@@ -79,7 +79,7 @@ std::vector<std::string> get_cluster_collections_to_use(EVENT::LCEvent *evt)
         std::sort(result.begin(), result.end());
         return result;
     }
-    
+
     // Otherwise, find all cluster collections in the event
     const std::vector<std::string> *collNames = evt->getCollectionNames();
     for(std::string const &name : *collNames)
@@ -94,7 +94,7 @@ std::vector<std::string> get_cluster_collections_to_use(EVENT::LCEvent *evt)
         }
         catch(...) {}
     }
-    
+
     std::sort(result.begin(), result.end());
     return result;
 }
@@ -107,7 +107,7 @@ TGNumberEntry *_CellECutEntry;
 TGNumberEntry *_PFOcellSizeEntry;
 TGNumberEntry *_ClustercellSizeEntry;
 TGNumberEntry *_cellEnergyScaleEntry;	//Tune EF factor for different color of Energy
-TGNumberEntry *_cellColorOverflowLimit;	
+TGNumberEntry *_cellColorOverflowLimit;
 TGNumberEntry *_cellColorUnderflowLimit;
 
 void make_gui()
@@ -123,25 +123,27 @@ void make_gui()
 	// Use global EventNavigator instance
 	EventNavigator* fh = &gEventNavigator;
 
-	//event navigation   
+	//event navigation
 	{
-		TGGroupFrame *frmEvent = 
-			new TGGroupFrame(frmMain, "Event Navigation", kHorizontalFrame);   
+		TGGroupFrame *frmEvent =
+			new TGGroupFrame(frmMain, "Event Navigation", kHorizontalFrame);
 		TGHorizontalFrame* hf = new TGHorizontalFrame(frmMain);
 
 		frmEvent->AddFrame(hf);
 
 		// Get icon directory relative to executable
-		TString icondir = gSystem->DirName(gProgName);
+		TString icondir = gSystem->DirName(gOptions.exe_path.c_str());
+		std::cout << "Program path: " << gOptions.exe_path << std::endl;
+		std::cout << "Program dir: " << icondir.Data() << std::endl;
 		icondir += "/icons/";
 
 		TGPictureButton* b = 0;
 
-		b = new TGPictureButton(hf, gClient->GetPicture(icondir + "GoBack.gif"));     
+		b = new TGPictureButton(hf, gClient->GetPicture(icondir + "GoBack.gif"));
 		hf->AddFrame(b);
 		b->Connect("Clicked()", "EventNavigator", fh, "Bck()");
 
-		b = new TGPictureButton(hf, gClient->GetPicture(icondir + "GoForward.gif"));     
+		b = new TGPictureButton(hf, gClient->GetPicture(icondir + "GoForward.gif"));
 		hf->AddFrame(b);
 		b->Connect("Clicked()", "EventNavigator", fh, "Fwd()");
 
@@ -162,7 +164,7 @@ void make_gui()
 
 		frmEvent->AddFrame(EventNrFrame);
 		frmMain->AddFrame(frmEvent);
-	}	
+	}
 
 
 	{
@@ -170,7 +172,8 @@ void make_gui()
 			new TGGroupFrame(frmMain, "Rotation Center, Hits Color", kHorizontalFrame);
 
 		// Get icon directory relative to executable
-		TString icondir = gSystem->DirName(gProgName);
+        // gProgName is broken ??
+		TString icondir = gSystem->DirName(gOptions.exe_path.c_str());
 		icondir += "/icons/";
 
 		TGPictureButton* d = 0;
@@ -230,7 +233,7 @@ void make_gui()
 
 	//Simulated CaloHits Style;
 	{
-		TGGroupFrame *frmHitColour = new TGGroupFrame(frmMain, "Calo. Hit Color: ");   
+		TGGroupFrame *frmHitColour = new TGGroupFrame(frmMain, "Calo. Hit Color: ");
 		frmMain->AddFrame(frmHitColour, new TGLayoutHints(kLHintsNormal, 2, 2, 0, 0));
 
 		TGComboBox* menuHitColour = new TGComboBox(frmHitColour);
@@ -390,7 +393,7 @@ void make_gui()
 		_cellEnergyThrEntry->Connect("ValueSet(Long_t)", "EventNavigator", fh, "setEnergyScale()");
 	}
 
-	{	
+	{
 		TGGroupFrame *GlobalenergyScale =
 			new TGGroupFrame(frmMain, "Global SF for Calo Hit", kVerticalFrame);
 		frmMain->AddFrame(GlobalenergyScale, new TGLayoutHints(kLHintsNormal, 2, 2, 0, 0));

@@ -22,6 +22,7 @@ struct Options
     std::vector<std::string> coll_MCP_collections;
     std::vector<std::string> coll_track_collections;
     std::vector<std::string> coll_cluster_collections;
+    std::string exe_path;  // Path to executable (from argv[0] or --exe-path option)
     
     Options();
     void parse(int &argc, char** &argv);
