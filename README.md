@@ -2,6 +2,25 @@
 
 ## Dependency
 
+### Submodules
+
+To access full functionality, MLPFA and its submodules are required.
+To install the submodules, run:
+
+```bash
+git submodule update --init --recursive
+```
+
+### GSL
+
+GSL is a dependency of `MLPFA`.
+The version provided by running
+`source /cvmfs/sw.hsf.org/key4hep/setup.sh -r 2025-01-28`
+has been tested and is known to work.
+
+Alternatively, you can install your own GSL using package managers such as **brew**, **conda**, or **apt**.
+
+
 ### ROOT
 
 See [ROOT](https://root.cern/install/)
@@ -24,7 +43,7 @@ LCIO from `source /cvmfs/sw.hsf.org/key4hep/setup.sh -r 2025-01-28` is tested.
 If LCIO can not be found in the env, we will download and build it automatically.
 
 **Note:**
-If you met issue about `fdopen`, try commenting out line `define fdopen(fd,mode) NULL` in 
+If you met issue about `fdopen`, try commenting out line `define fdopen(fd,mode) NULL` in
 `build/_deps/lcio/src/LCIO_ext-build/_deps/sio_extern-src/zlib/zutil.h`.
 This solves problem, when your system has `fdopen`, but it thinks your system has no one.
 
@@ -45,8 +64,8 @@ Normally, you don't have to do anything, if `root` command works.
    make && make install
    ```
    Executable file will be generated in `<path-druid>/bin/Druid`.
-   
-   
+
+
 # Usage
 A single `Druid` without arguments to see usage.
 ```bash
