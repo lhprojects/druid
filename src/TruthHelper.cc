@@ -37,7 +37,7 @@ TruthHelper gTruthHelper;
 
 void init_clusters()
 {
-    
+
     for(int icluster = 0; icluster < (int)gLCIOData.m_clusters.size(); ++icluster)
     {
         EVENT::Cluster *cluster = ML_at(gLCIOData.m_clusters, icluster);
@@ -59,7 +59,7 @@ void init_clusters()
 
 void init_tracks()
 {
-    
+
     for(int itrack = 0; itrack < (int)gLCIOData.m_tracks.size(); ++itrack)
     {
         EVENT::Track *track = ML_at(gLCIOData.m_tracks, itrack);
@@ -163,7 +163,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     if (gOptions.logLevel > 0) {
         PFAA::setLogLevel(gOptions.logLevel);
     }
-    
+
     // Set TPC geometry if provided via command line options
     if (gOptions.tpc_innerRadius > 0) {
         MLPFA::MLGeom::instance().setTPCInnerRadius(gOptions.tpc_innerRadius);
@@ -174,12 +174,24 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     if (gOptions.tpc_halfZ > 0) {
         MLPFA::MLGeom::instance().setTPCHalfZ(gOptions.tpc_halfZ);
     }
-    
+
     mlpfa_reader.m_MCParticleCollectionNames = m_MCPCollNames;
-    
+    for (std::string const &name : mlpfa_reader.m_MCParticleCollectionNames)
+    {
+        try
+        {
+            EVENT::LCCollection *col = evt->getCollection(name);
+            std::cout << "Found MCParticle collection: " << name << " with "
+                      << col->getNumberOfElements() << " particles" << std::endl;
+        }
+        catch(...) {
+            std::cout << "MCParticle collection not found: " << name << std::endl;
+        }
+    }
+
     // Get collection names from the event
     const std::vector<std::string> *collNames = evt->getCollectionNames();
-    
+
     // Set up track collection names using the helper function
     mlpfa_reader.m_TrackCollectionNames = get_track_collections_to_use(evt);
     for(std::string const &name : mlpfa_reader.m_TrackCollectionNames)
@@ -187,12 +199,13 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         try
         {
             EVENT::LCCollection *col = evt->getCollection(name);
-            std::cout << "Found Track collection: " << name << " with " 
+            std::cout << "Found Track collection: " << name << " with "
                       << col->getNumberOfElements() << " tracks" << std::endl;
+        } catch(...) {
+            std::cout << "Track collection not found: " << name << std::endl;
         }
-        catch(...) {}
     }
-    
+
     // Set up cluster collection names using the helper function
     mlpfa_reader.m_ClusterCollectionName = get_cluster_collections_to_use(evt);
     for(std::string const &name : mlpfa_reader.m_ClusterCollectionName)
@@ -200,17 +213,19 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         try
         {
             EVENT::LCCollection *col = evt->getCollection(name);
-            std::cout << "Found Cluster collection: " << name << " with " 
+            std::cout << "Found Cluster collection: " << name << " with "
                       << col->getNumberOfElements() << " clusters" << std::endl;
         }
-        catch(...) {}
+        catch(...) {
+            std::cout << "Cluster collection not found: " << name << std::endl;
+        }
     }
-    
+
     // Set up relation collection names for CaloHit-SimCaloHit links
-    mlpfa_reader.m_RelCaloHitCollectionNames.clear();    
+    mlpfa_reader.m_RelCaloHitCollectionNames.clear();
     // Set up relation collection names for TrackerHit-SimTrackerHit links
     mlpfa_reader.m_RelTrackCollectionNames.clear();
-    
+
     // Try to find calorimeter relation collections in the event
     for(std::string const &name : *collNames)
     {
@@ -225,7 +240,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
                 {
                     EVENT::CalorimeterHit *caloHit = dynamic_cast<EVENT::CalorimeterHit*>(rel->getFrom());
                     EVENT::SimCalorimeterHit *simHit = dynamic_cast<EVENT::SimCalorimeterHit*>(rel->getTo());
-                    
+
                     // If both casts succeed, this is a CaloHit-SimCaloHit relation
                     if(caloHit && simHit)
                     {
@@ -237,7 +252,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
                         // Try TrackerHit-SimTrackerHit relation
                         EVENT::TrackerHit *trackerHit = dynamic_cast<EVENT::TrackerHit*>(rel->getFrom());
                         EVENT::SimTrackerHit *simTrackerHit = dynamic_cast<EVENT::SimTrackerHit*>(rel->getTo());
-                        
+
                         if(trackerHit && simTrackerHit)
                         {
                             mlpfa_reader.m_RelTrackCollectionNames.push_back(name);
@@ -250,7 +265,12 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         catch(...) {}
     }
 
-    mlpfa_reader.fillInputData(evt, gLCIOData, mcTruthAns, gMLPFAInputData, gMLPFAMetaData);
+    try {
+        mlpfa_reader.fillInputData(evt, gLCIOData, mcTruthAns, gMLPFAInputData, gMLPFAMetaData);
+    } catch(...) {
+        std::cout << "Error: Failed to fill MLPFA input data from LCEvent!" << std::endl;
+        throw;
+    }
 
     init_clusters();
     init_tracks();
@@ -259,14 +279,16 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     {
         EVENT::LCRelation *rel = gLCIOData.m_caloHitLinks[ilink];
         EVENT::CalorimeterHit *recoHit = dynamic_cast<EVENT::CalorimeterHit*>(rel->getFrom());
-        EVENT::SimCalorimeterHit *simHit = dynamic_cast<EVENT::SimCalorimeterHit*>(rel->getTo());        
+        EVENT::SimCalorimeterHit *simHit = dynamic_cast<EVENT::SimCalorimeterHit*>(rel->getTo());
         caloHitSimCaloHitMap[recoHit] = simHit;
     }
-    
+
     std::cout << "Loaded " << gLCIOData.m_caloHitLinks.size() << " CaloHit-SimCaloHit relations" << std::endl;
     std::cout << "caloHitSimCaloHitMap size: " << caloHitSimCaloHitMap.size() << std::endl;
 
-    std::cout << evt->getCollection("MCParticle")->getNumberOfElements() << " MCParticles loaded." << std::endl;
+    //std::cout << evt->getCollection("MCParticle")->getNumberOfElements() << " MCParticles loaded." << std::endl;
+
+
     std::cout << " gLCIOData.m_mcParts.size()" << gLCIOData.m_mcParts.size() << std::endl;
     for(int ipart = 0; ipart < (int)gLCIOData.m_mcParts.size(); ++ipart)
     {
@@ -274,7 +296,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         MLMCPart *mlPart = ML_at(gMLPFAInputData.m_MCParts, ipart);
         mcpartIDs[mcPart] = mlPart;
     }
-    
+
 
     // Read all SimTrackerHit collections and organize by MCParticle
     for(std::string const &name : *collNames)
@@ -286,7 +308,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
             {
                 int nHits = col->getNumberOfElements();
                 std::cout << "Reading " << nHits << " SimTrackerHits from collection: " << name << std::endl;
-                
+
                 for(int i = 0; i < nHits; ++i)
                 {
                     EVENT::SimTrackerHit *hit = dynamic_cast<EVENT::SimTrackerHit*>(col->getElementAt(i));
@@ -298,16 +320,16 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
                         if(time < 1E-4) {
                             continue; // Skip hits with zero time
                         }
-                        
+
                         // Check if this hit is too far from the last hit for this MCParticle
-                        std::vector<TrackerHitInfo> &mcpHits = m_mcpTrackerHits[mcp];                        
+                        std::vector<TrackerHitInfo> &mcpHits = m_mcpTrackerHits[mcp];
                         if(0) {
                             // Print SimTrackerHit information
-                            std::cout << "  SimTrackerHit " << i << " at (" 
+                            std::cout << "  SimTrackerHit " << i << " at ("
                                     << pos[0] << ", " << pos[1] << ", " << pos[2] << ") mm, "
                                     << "Time=" << time << " ns, "
                                     << "MCP=" << mcp << std::endl;
-                            
+
                         }
                         m_mcpTrackerHits[mcp].emplace_back(pos, time);
                     }
@@ -318,7 +340,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     }
 
     init_tracsterConnections();
-    
+
     // Sort tracker hits by time for each MCParticle
     int totalHits = 0;
     for(auto &pair : m_mcpTrackerHits)
@@ -326,7 +348,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         std::vector<TrackerHitInfo> &hits = pair.second;
         bool debug = false;
 
-        std::sort(hits.begin(), hits.end(), 
+        std::sort(hits.begin(), hits.end(),
                   [](const TrackerHitInfo &a, const TrackerHitInfo &b) { return a.time < b.time; });
 
         // Split hits into segments based on distance threshold (1000 mm = 100 cm)
@@ -334,9 +356,9 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
         const double maxDistance = 30.0; // mm
         const double minInterSegmentDistance = 500.0; // mm
         const int minSegmentSize = 5; // Minimum hits per segment (changed from 54)
-        
+
         std::vector<TrackerHitInfo> currentSegment;
-        
+
         for(size_t i = 0; i < hits.size(); ++i)
         {
             if(currentSegment.empty())
@@ -349,7 +371,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
                     double dy = hits[i].position[1] - lastFilteredHit.position[1];
                     double dz = hits[i].position[2] - lastFilteredHit.position[2];
                     double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-                    
+
                     // Skip this hit if too far from previous segment
                     if(distance > minInterSegmentDistance)
                     {
@@ -369,7 +391,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
                 double dy = hits[i].position[1] - lastHit.position[1];
                 double dz = hits[i].position[2] - lastHit.position[2];
                 double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-                
+
                 if(distance > maxDistance)
                 {
                     if (debug)
@@ -387,7 +409,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
                     else
                     {
                         if(debug) {
-                            std::cout << "  Ignoring segment with only " << currentSegment.size() 
+                            std::cout << "  Ignoring segment with only " << currentSegment.size()
                                     << " hits (< " << minSegmentSize << ")" << std::endl;
                         }
                     }
@@ -401,7 +423,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
                 }
             }
         }
-        
+
         // Don't forget the last segment
         if(!currentSegment.empty())
         {
@@ -412,19 +434,19 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
             else
             {
                 if(0) {
-                    std::cout << "  Ignoring final segment with only " << currentSegment.size() 
+                    std::cout << "  Ignoring final segment with only " << currentSegment.size()
                             << " hits (< " << minSegmentSize << ")" << std::endl;
                 }
             }
         }
-        
+
         // Replace hits with filtered hits
         hits = filteredHits;
-        
+
         totalHits += hits.size();
     }
-    
-    std::cout << "Organized " << totalHits << " SimTrackerHits for " 
+
+    std::cout << "Organized " << totalHits << " SimTrackerHits for "
               << m_mcpTrackerHits.size() << " MCParticles" << std::endl;
 
 }
@@ -512,7 +534,7 @@ EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::CalorimeterHit *caloHit)
 
     // CalorimeterHit is a reconstructed hit, need to find corresponding SimCalorimeterHit via relations
     EVENT::SimCalorimeterHit *simHit = nullptr;
-    
+
     auto iter = caloHitSimCaloHitMap.find(caloHit);
     if(iter != caloHitSimCaloHitMap.end())
     {
@@ -523,22 +545,22 @@ EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::CalorimeterHit *caloHit)
         static int warnCount = 0;
         if(warnCount < 3)
         {
-            std::cout << "Warning: CalorimeterHit " << caloHit << " not found in caloHitSimCaloHitMap (map size: " 
+            std::cout << "Warning: CalorimeterHit " << caloHit << " not found in caloHitSimCaloHitMap (map size: "
                       << caloHitSimCaloHitMap.size() << ")" << std::endl;
             warnCount++;
         }
     }
-    
+
     EVENT::MCParticle *mainPart = nullptr;
     if(simHit != nullptr)
     {
         // Use the SimCalorimeterHit method to get the main MCParticle
         mainPart = GetMainMCP(simHit);
     }
-    
+
     // Cache the result (even if nullptr)
     caloHitMainMCP[caloHit] = mainPart;
-    
+
     return mainPart;
 }
 
@@ -574,18 +596,18 @@ EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::SimCalorimeterHit *caloHit)
 
 EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::Cluster *cluster)
 {
-    return mainMCParticles[cluster];    
+    return mainMCParticles[cluster];
 }
 
 EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::Track *track)
 {
     if(!track) return nullptr;
-    
+
     // Check cache first
     if(trackMainMCP.find(track) != trackMainMCP.end())
     {
         return trackMainMCP[track];
-    }    
+    }
     return nullptr;
 }
 

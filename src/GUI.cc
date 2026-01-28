@@ -41,16 +41,8 @@ std::vector<std::string> get_track_collections_to_use(EVENT::LCEvent *evt)
 {
     std::vector<std::string> result;
 
-    // If command line specifies track collections, use them unconditionally
-    if(!gOptions.coll_track_collections.empty())
-    {
-        result = gOptions.coll_track_collections;
-        std::sort(result.begin(), result.end());
-        return result;
-    }
-
-    // Otherwise, find all track collections in the event
-    const std::vector<std::string> *collNames = evt->getCollectionNames();
+    const std::vector<std::string> *collNames = !gOptions.coll_track_collections.empty() ?
+        &gOptions.coll_track_collections : evt->getCollectionNames();
     for(std::string const &name : *collNames)
     {
         try
@@ -72,16 +64,8 @@ std::vector<std::string> get_cluster_collections_to_use(EVENT::LCEvent *evt)
 {
     std::vector<std::string> result;
 
-    // If command line specifies cluster collections, use them unconditionally
-    if(!gOptions.coll_cluster_collections.empty())
-    {
-        result = gOptions.coll_cluster_collections;
-        std::sort(result.begin(), result.end());
-        return result;
-    }
-
-    // Otherwise, find all cluster collections in the event
-    const std::vector<std::string> *collNames = evt->getCollectionNames();
+    const std::vector<std::string> *collNames = !gOptions.coll_cluster_collections.empty() ?
+        &gOptions.coll_cluster_collections : evt->getCollectionNames();
     for(std::string const &name : *collNames)
     {
         try
