@@ -493,7 +493,7 @@ void load_collections(LCEvent* evt, string coltype) {
         temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::CLUSTER) {
-        TEveElementList* temp = ClusterHits(col, collName);
+        TEveElementList* temp = ClusterHits(evt, col, collName);
         if (temp) {
           temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
           collectionClasses[ct]->AddElement(temp);

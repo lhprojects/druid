@@ -32,26 +32,33 @@ using namespace std;
 
 extern int GlobalRandomColorIndex;
 
-std::pair<TEveElementList*, TEveElementList*> BuildTracks(LCCollection* col, string name)
+std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCEvent* evt, LCCollection* col, string name)
 {
     // Filter track collections based on command line options
     if(gOptions.coll_track_collections.size() > 0) {
         if(!equals_any(name, gOptions.coll_track_collections)) {
             cout << "  Skipping track collection: " << name << " (not in -coll.track.add list)" << endl;
-            return std::make_pair(nullptr, nullptr);
+            return std::make_tuple(nullptr, nullptr, nullptr);
         }
     }
-    
-    cout << "  Track collection: " << name.c_str() 
+
+    cout << "  Track collection: " << name.c_str()
          << ". Number of Tracks: " << col->getNumberOfElements() << endl;
 
     TEveTrackList* trackList = new TEveTrackList();
     trackList->SetName((name).c_str());
     trackList->SetMainColor(kBlue);
-    
+
     TEveElementList* connectionList = new TEveElementList();
-    connectionList->SetName((name + "_conn").c_str());
+    connectionList->SetName((name + "_true_conn").c_str());
     connectionList->SetMainColor(kOrange);
+
+    TEveElementList* recoConnectionList = new TEveElementList();
+    recoConnectionList->SetName((name + "_reco_conn").c_str());
+    recoConnectionList->SetMainColor(kGreen);
+
+    // Build a map of reco relations for fast lookup
+    std::map<LCObject*, LCObject*> recoRelationMap = buildRecoRelationMap(evt, gOptions.coll_recoRelation_collections);
 
     // Create track propagator for charged tracks
     TEveTrackPropagator* propsetCharged = new TEveTrackPropagator();
@@ -61,7 +68,7 @@ std::pair<TEveElementList*, TEveElementList*> BuildTracks(LCCollection* col, str
     propsetCharged->SetMaxOrbs(1.2);
 
     int nTracks = col->getNumberOfElements();
-    
+
     for(int itrk = 0; itrk < nTracks; itrk++)
     {
         Track* track = dynamic_cast<Track*>(col->getElementAt(itrk));
@@ -81,14 +88,14 @@ std::pair<TEveElementList*, TEveElementList*> BuildTracks(LCCollection* col, str
         double phi0 = track->getPhi();
         double d0 = track->getD0();
         double z0 = track->getZ0();
-        
+
         // Calculate momentum using MLPFA Helix
         MLPFA::Helix helix(phi0, d0, z0, omega, tanLambda, gOptions.BField);
         MLPFA::Vect3f mom = helix.m_momentum;
-        double momentum = sqrt(mom.GetX() * mom.GetX() + 
-                              mom.GetY() * mom.GetY() + 
+        double momentum = sqrt(mom.GetX() * mom.GetX() +
+                              mom.GetY() * mom.GetY() +
                               mom.GetZ() * mom.GetZ());
-        
+
         int charge = (omega > 0) ? 1 : -1;
 
         // print out all tracker hit
@@ -104,7 +111,7 @@ std::pair<TEveElementList*, TEveElementList*> BuildTracks(LCCollection* col, str
                           << std::endl;
             }
         }
-        
+
         const TrackState *trackState = nullptr;
         if ((lastPos[2] - firstPos[2]) * mom.GetZ() < 0)
         {
@@ -137,19 +144,19 @@ std::pair<TEveElementList*, TEveElementList*> BuildTracks(LCCollection* col, str
 
         // Create TEveTrack
         TEveTrack* eveTrack = new TEveTrack(recTrack, propsetCharged);
-        
+
         // Add end point
         TEvePathMark* pm = new TEvePathMark(TEvePathMark::kDecay);
         pm->fV.Set(end);
         eveTrack->AddPathMark(*pm);
-        
+
         // Set track properties
         eveTrack->SetLineWidth(2);
         eveTrack->SetSmooth(kTRUE);
-        
+
         // Set default color (will be updated by UpdateTrackColorsByMCParticle)
         eveTrack->SetLineColor(kGray);
-        
+
         // Store track in map for later color updates
         gGUIManager._RecoTracks[track] = eveTrack;
 
@@ -173,7 +180,7 @@ std::pair<TEveElementList*, TEveElementList*> BuildTracks(LCCollection* col, str
                                 "Last Hit: (%.2f, %.2f, %.2f) cm\n"
                                 "Tracker hits: %lu",
                                 trackID.c_str(),
-                                charge, 
+                                charge,
                                 momentum, mom.GetX(), mom.GetY(), mom.GetZ(),
                                 mcpID.c_str(), mcMomentum, mcPx, mcPy, mcPz,
                                 vtx.fX, vtx.fY, vtx.fZ,
@@ -181,50 +188,71 @@ std::pair<TEveElementList*, TEveElementList*> BuildTracks(LCCollection* col, str
                                 hits.size()));
 
         trackList->AddElement(eveTrack);
-        
-        // Draw mother-daughter connection arrow
+
+        // Draw mother-daughter connection arrow for truth
         LCObjectConnection conn = gTruthHelper.GetTracsterConnection(track);
         TEveArrow* connArrow = createConnectionArrow(conn);
         if (connArrow) {
             connectionList->AddElement(connArrow);
         }
+
+        // Draw mother-daughter connection for reco using the pre-built map
+        if(!recoRelationMap.empty())
+        {
+            auto it = recoRelationMap.find(track);
+            if(it != recoRelationMap.end())
+            {
+                // Found the relation for this track
+                LCObject *fromObj = it->second;
+
+                LCObjectConnection recoConn = createConnectionFromRelation(fromObj, track);
+
+                TEveArrow *recoArrow = createConnectionArrow(recoConn);
+                if (recoArrow)
+                {
+                    recoArrow->SetMainColor(kGreen);  // Green for reco relations
+                    recoConnectionList->AddElement(recoArrow);
+                }
+            }
+        }
     }
 
-    trackList->MakeTracks();  
+    trackList->MakeTracks();
     trackList->SetRnrSelfChildren(kTRUE, kTRUE);
-    
+
     connectionList->SetRnrSelfChildren(kTRUE, kTRUE);
-    
-    return std::make_pair(trackList, connectionList);
+    recoConnectionList->SetRnrSelfChildren(kTRUE, kTRUE);
+
+    return std::make_tuple(trackList, connectionList, recoConnectionList);
 }
 
 // Function to update reconstructed Track colors to match MCParticle colors
 void UpdateTrackColorsByMCParticle() {
     std::cout << "Updating reconstructed Track colors to match MCParticle colors..." << std::endl;
-    
+
     int updatedCount = 0;
     int grayCount = 0;
-    
+
     // Iterate through all stored reconstructed tracks
     for (auto& trackPair : gGUIManager._RecoTracks) {
         EVENT::Track* track = trackPair.first;
         TEveTrack* eveTrack = trackPair.second;
-        
+
         if (!track || !eveTrack) continue;
-        
+
         // Get the main MCParticle for this track
         EVENT::MCParticle* mainMCP = gTruthHelper.GetMainMCP(track);
         int newColor = kGray;
         bool mcpIsVisible = false;
-        std::cout << "Track " << gTruthHelper.GetStringID(track) << " associated MCParticle: " 
+        std::cout << "Track " << gTruthHelper.GetStringID(track) << " associated MCParticle: "
                   << (mainMCP ? gTruthHelper.GetStringID(mainMCP) : "None") << std::endl;
-        
+
         if (mainMCP && gGUIManager._MCPTracks.find(mainMCP) != gGUIManager._MCPTracks.end()) {
             TEveTrack* mcpTrack = gGUIManager._MCPTracks[mainMCP];
-            
+
             // Check if the MCParticle track is visible
             bool trackVisible = mcpTrack && mcpTrack->GetRnrSelf();
-            
+
             // Check if the particle's group is showing
             bool groupVisible = true;
             auto groupIt = gGUIManager._MCPGroups.find(mainMCP);
@@ -234,7 +262,7 @@ void UpdateTrackColorsByMCParticle() {
                     groupVisible = group->GetRnrSelf() && group->GetRnrChildren();
                 }
             }
-            
+
             if (trackVisible && groupVisible) {
                 mcpIsVisible = true;
                 // Use the same color as the MCParticle track
@@ -242,17 +270,17 @@ void UpdateTrackColorsByMCParticle() {
                 updatedCount++;
             }
         }
-        
+
         if (!mcpIsVisible) {
             newColor = kGray;
             grayCount++;
         }
-        
+
         // Update the track color
         eveTrack->SetLineColor(newColor);
     }
-    
-    std::cout << "Updated " << updatedCount << " tracks with MCP colors, " 
+
+    std::cout << "Updated " << updatedCount << " tracks with MCP colors, "
               << grayCount << " tracks set to gray" << std::endl;
 }
 
@@ -263,9 +291,9 @@ void loadTracks(LCEvent *evt, string coltype)
     std::map<string, int> DisplayFlag;
     bool Draw = true;
     bool ChildDraw = true;
-    
+
     extern std::map<string, TEveElementList*> collectionClasses;
-    
+
     if (collectionClasses.find(coltype) != collectionClasses.end() &&
         collectionClasses[coltype])
     {
@@ -283,7 +311,7 @@ void loadTracks(LCEvent *evt, string coltype)
         collectionClasses[coltype]->DestroyElements();
         collectionClasses[coltype]->Destroy();
     }
-    
+
     collectionClasses[coltype] = new TEveElementList();
     collectionClasses[coltype]->SetRnrSelfChildren(Draw, ChildDraw);
     collectionClasses[coltype]->SetRnrSelf(Draw);
@@ -291,7 +319,7 @@ void loadTracks(LCEvent *evt, string coltype)
 
     // Get track collections to use from helper function
     std::vector<std::string> trackCollNames = get_track_collections_to_use(evt);
-    
+
     for (std::string const &collName : trackCollNames)
     {
         LCCollection *col = nullptr;
@@ -300,16 +328,21 @@ void loadTracks(LCEvent *evt, string coltype)
             col = evt->getCollection(collName);
         }
         catch(...) {}
-        auto result = BuildTracks(col, collName);
-        if (result.first)
+        auto result = BuildTracks(evt, col, collName);
+        if (std::get<0>(result))
         {
             bool FlagDraw = DisplayFlag.find(collName) != DisplayFlag.end() ? DisplayFlag[collName] : true;
-            result.first->SetRnrSelfChildren(FlagDraw, FlagDraw);
-            collectionClasses[coltype]->AddElement(result.first);
-            
-            if (result.second) {
-                result.second->SetRnrSelfChildren(FlagDraw, FlagDraw);
-                collectionClasses[coltype]->AddElement(result.second);
+            std::get<0>(result)->SetRnrSelfChildren(FlagDraw, FlagDraw);
+            collectionClasses[coltype]->AddElement(std::get<0>(result));
+
+            if (std::get<1>(result)) {
+                std::get<1>(result)->SetRnrSelfChildren(FlagDraw, FlagDraw);
+                collectionClasses[coltype]->AddElement(std::get<1>(result));
+            }
+
+            if (std::get<2>(result)) {
+                std::get<2>(result)->SetRnrSelfChildren(FlagDraw, FlagDraw);
+                collectionClasses[coltype]->AddElement(std::get<2>(result));
             }
         }
     }
@@ -320,21 +353,21 @@ void loadTracks(LCEvent *evt, string coltype)
 TEveArrow* createConnectionArrow(LCObjectConnection const &conn)
 {
 	if (conn.m_mother == nullptr) return nullptr;
-	
+
 	// Arrow from mother connection point to daughter connection point
 	float dx = conn.m_daughterX - conn.m_motherX;
 	float dy = conn.m_daughterY - conn.m_motherY;
 	float dz = conn.m_daughterZ - conn.m_motherZ;
 	float arrowLength = std::sqrt(dx*dx + dy*dy + dz*dz);
-	
+
 	// Make radius inversely proportional to length (as fraction of length)
 	// Target: ~2mm absolute radius, so fraction = 2mm / length
 	float targetRadius = 5.0;  // Target absolute radius in mm
 	float tubeR = targetRadius / arrowLength;  // Fraction of arrow length
 	float coneR = 2.0 * tubeR;  // Cone 2x larger than tube
 	float coneL = 0.2;  // Cone length as fraction of arrow length
-	
-	TEveArrow* connArrow = new TEveArrow(0.1*dx, 0.1*dy, 0.1*dz, 
+
+	TEveArrow* connArrow = new TEveArrow(0.1*dx, 0.1*dy, 0.1*dz,
 	                                      0.1*conn.m_motherX, 0.1*conn.m_motherY, 0.1*conn.m_motherZ);
 	connArrow->SetTubeR(tubeR);
 	connArrow->SetConeR(coneR);

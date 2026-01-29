@@ -165,7 +165,7 @@ TEveElementList* CaloHits( LCCollection* col, std::string hh);
 TEveElementList* TrackerHits( LCCollection* col, std::string hh);
 TEveElementList* TrackAssignedHits( LCCollection* col, std::string hh );
 void loadTracks(EVENT::LCEvent *evt, std::string coltype);
-TEveElementList* ClusterHits( LCCollection* col, std::string hh);
+TEveElementList* ClusterHits( EVENT::LCEvent* evt, LCCollection* col, std::string hh);
 TEveElementList* Vertex(LCCollection* col, std::string hh);
 TEveElementList* BuildMCParticles( LCEvent* evt, std::vector<std::string> const &mcpartcollnames);
 TEveElementList* BuildPFOs( LCCollection* col, std::string hh);
@@ -187,5 +187,11 @@ std::vector<std::string> get_cluster_collections_to_use(EVENT::LCEvent *evt);
 class TEveArrow;
 struct LCObjectConnection;
 TEveArrow* createConnectionArrow(LCObjectConnection const &conn);
+
+// Build a map of LCRelations for fast lookup
+std::map<EVENT::LCObject*, EVENT::LCObject*> buildRecoRelationMap(EVENT::LCEvent* evt, const std::string& relationName);
+
+// Create LCObjectConnection from a relation mother and daughter object
+LCObjectConnection createConnectionFromRelation(EVENT::LCObject* motherObj, EVENT::LCObject* daughterObj);
 
 #endif //GLOBALDEFS_H_

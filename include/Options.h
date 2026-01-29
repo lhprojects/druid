@@ -22,6 +22,7 @@ struct Options
     std::vector<std::string> coll_MCP_collections;
     std::vector<std::string> coll_track_collections;
     std::vector<std::string> coll_cluster_collections;
+    std::string coll_recoRelation_collections;  // Reco relation collection name for cluster connections
     std::string exe_path;  // Path to executable (from argv[0] or --exe-path option)
     
     Options();

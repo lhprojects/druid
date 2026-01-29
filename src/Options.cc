@@ -139,6 +139,7 @@ void Options::parse(int &argc, char** &argv) {
     printHelp=false;
     printVersion=false;
     exe_path = "";  // Will be set from argv[0] if not provided via option
+    coll_recoRelation_collections = "";  // Empty by default, must be explicitly set
 
     argv_.push_back(argv[0]);
 
@@ -161,6 +162,8 @@ void Options::parse(int &argc, char** &argv) {
         } else if(add_string(argc, argv, i, "-coll.track.add", coll_track_collections)) 
         {
         } else if(add_string(argc, argv, i, "-coll.cluster.add", coll_cluster_collections)) 
+        {
+        } else if(read_string(argc, argv, i, "-coll.recoRelation", coll_recoRelation_collections)) 
         {
         } else if(read_string(argc, argv, i, "--exe-path", exe_path)) 
         {
