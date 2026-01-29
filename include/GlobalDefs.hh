@@ -55,6 +55,9 @@ struct EventState
 };
 extern EventState gEventState;
 
+// Global visualization settings
+extern float gRecoArrowAlpha;
+
 struct GUIManager
 {
     TGNumberEntry *_EventNumberEntry = nullptr;

@@ -211,6 +211,7 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
                 if (recoArrow)
                 {
                     recoArrow->SetMainColor(kGreen);  // Green for reco relations
+                    recoArrow->SetMainAlpha(gRecoArrowAlpha);
                     recoConnectionList->AddElement(recoArrow);
                 }
             }
@@ -372,7 +373,9 @@ TEveArrow* createConnectionArrow(LCObjectConnection const &conn)
 	connArrow->SetTubeR(tubeR);
 	connArrow->SetConeR(coneR);
 	connArrow->SetConeL(coneL);
-	connArrow->SetMainColor(kOrange);
+	connArrow->SetMainColor(kRed);
+	connArrow->SetMainAlpha(0.8);
+	connArrow->SetPickable(kTRUE);
 	connArrow->SetTitle(Form("Mother-Daughter Connection\\nMother type: %s",
 	                         conn.m_motherType == 1 ? "Track" : "Cluster"));
 	return connArrow;

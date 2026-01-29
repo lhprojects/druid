@@ -30,6 +30,7 @@
 #include "TRandom3.h"
 
 #include <map>
+#include <limits>
 #include "trajectory.h"
 #include "fitting_root.h"
 #include "geometry.h"
@@ -45,6 +46,7 @@ using namespace std;
 using namespace EVENT;
 
 float ClusterHitSize = 1.0;
+float gRecoArrowAlpha = 0.3;  // Alpha transparency for reco arrows
 extern int flagdetectortype;
 const float HCALBarrelLengthILD = 309.3;
 const float HCALBarrelLengthSID = 320.0;
@@ -90,6 +92,40 @@ std::map<LCObject *, LCObject *> buildRecoRelationMap(LCEvent *evt, const std::s
     return recoRelationMap;
 }
 
+// Helper function to get the position of the hit nearest to the center (origin)
+static void getNearestHitToCenter(Cluster *cluster, float &x, float &y, float &z)
+{
+    CalorimeterHitVec hits = cluster->getCalorimeterHits();
+    if (hits.empty())
+    {
+        // Fallback to cluster position if no hits
+        const float *pos = cluster->getPosition();
+        x = pos[0];
+        y = pos[1];
+        z = pos[2];
+        return;
+    }
+
+    // Find hit with minimum distance to origin
+    float minDist2 = std::numeric_limits<float>::max();
+    int minIndex = 0;
+    for (int i = 0; i < hits.size(); ++i)
+    {
+        const float *hitPos = hits[i]->getPosition();
+        float dist2 = hitPos[0] * hitPos[0] + hitPos[1] * hitPos[1] + hitPos[2] * hitPos[2];
+        if (dist2 < minDist2)
+        {
+            minDist2 = dist2;
+            minIndex = i;
+        }
+    }
+
+    const float *nearestHitPos = hits[minIndex]->getPosition();
+    x = nearestHitPos[0];
+    y = nearestHitPos[1];
+    z = nearestHitPos[2];
+}
+
 // Create LCObjectConnection from a relation mother object and daughter object
 LCObjectConnection createConnectionFromRelation(LCObject *motherObj, LCObject *daughterObj)
 {
@@ -116,10 +152,11 @@ LCObjectConnection createConnectionFromRelation(LCObject *motherObj, LCObject *d
     else if (motherCluster)
     {
         conn.m_motherType = 2; // Cluster
-        const float *pos = motherCluster->getPosition();
-        conn.m_motherX = pos[0];
-        conn.m_motherY = pos[1];
-        conn.m_motherZ = pos[2];
+        float x, y, z;
+        getNearestHitToCenter(motherCluster, x, y, z);
+        conn.m_motherX = x;
+        conn.m_motherY = y;
+        conn.m_motherZ = z;
     }
 
     // Get daughter position (could be Cluster or Track)
@@ -128,10 +165,11 @@ LCObjectConnection createConnectionFromRelation(LCObject *motherObj, LCObject *d
 
     if (daughterCluster)
     {
-        const float *pos = daughterCluster->getPosition();
-        conn.m_daughterX = pos[0];
-        conn.m_daughterY = pos[1];
-        conn.m_daughterZ = pos[2];
+        float x, y, z;
+        getNearestHitToCenter(daughterCluster, x, y, z);
+        conn.m_daughterX = x;
+        conn.m_daughterY = y;
+        conn.m_daughterZ = z;
     }
     else if (daughterTrack)
     {
@@ -326,6 +364,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                 if (connArrow)
                 {
                     connArrow->SetMainColor(kGreen); // Green for reco relations
+                    connArrow->SetMainAlpha(gRecoArrowAlpha);
                     recoConnectionList->AddElement(connArrow);
                 }
             }
