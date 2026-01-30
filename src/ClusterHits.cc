@@ -258,7 +258,8 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
         CluSize = Hits.size();
         ClusterEnergy = acluster->getEnergy();
         ClusterPID = acluster->getType();
-        Recocluster->SetName(Form("%s, En=%.3f", gTruthHelper.GetStringID(acluster).c_str(), ClusterEnergy));
+        std::string cluStrID = gTruthHelper.GetStringID(acluster);
+        Recocluster->SetName(Form("%s, En=%.3f", cluStrID.c_str(), ClusterEnergy));
         // std::cout<<"CLUSTERPIDTYPE "<<ClusterPID<<std::endl;
 
         LocalRandomIndex = int(100 * r0->Rndm(iC));
@@ -303,11 +304,11 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                 {
                     q->SetTitle(Form("CluserHit%d, En = %.3f keV\n"
                                      "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n"
-                                     "Cluster Energy = %f GeV\n"
-                                     "Cluster PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n",
+                                     "Cluster %s\n"
+                                     "Cluster Energy = %f GeV\n",
                                      j,
                                      HitEn * 1E6, 10 * HitPosition[0], 10 * HitPosition[1], 10 * HitPosition[2],
-                                     ClusterEnergy, cluPos[0], cluPos[1], cluPos[2]));
+                                     cluStrID.c_str(), ClusterEnergy));
                 }
                 q->SetPickable(kTRUE);
                 if (1)
@@ -323,11 +324,17 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
         if (true)
         {
             LCObjectConnection conn = gTruthHelper.GetTracsterConnection(acluster);
+            std::cout << "a cluster" << cluStrID << " from " << conn.m_mother << std::endl;
+            std::cout << conn.m_daughterX << " " << conn.m_daughterY << " " << conn.m_daughterZ << std::endl;
+            std::cout << conn.m_motherX << " " << conn.m_motherY << " " << conn.m_motherZ << std::endl;
+
             TEveArrow *connArrow = createConnectionArrow(conn);
             if (connArrow)
             {
                 if (1)
                 {
+                    std::string strid = "Conn " + cluStrID;
+                    connArrow->SetName(strid.c_str());
                     truthConnectionList->AddElement(connArrow);
                 }
             }
@@ -342,30 +349,43 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                     marker->SetMainColor(kYellow);
                     marker->SetMainTransparency(20);
                     marker->RefMainTrans().SetPos(0.1 * conn.m_daughterX, 0.1 * conn.m_daughterY, 0.1 * conn.m_daughterZ);
-                    marker->SetTitle("Primary cluster");
+                    std::string strid = "Primary cluster " + cluStrID;
+                    marker->SetName(strid.c_str());
                     truthConnectionList->AddElement(marker);
                 }
             }
         }
 
         // Draw mother-daughter connection for reco using the pre-built map
-        std::cout << "recoRelationMap size: " << recoRelationMap.size() << std::endl;
         if (!recoRelationMap.empty())
         {
             auto it = recoRelationMap.find(acluster);
+            
             if (it != recoRelationMap.end())
             {
                 // Found the relation for this cluster
                 LCObject *fromObj = it->second;
-
-                LCObjectConnection conn = createConnectionFromRelation(fromObj, acluster);
-
-                TEveArrow *connArrow = createConnectionArrow(conn);
+                LCObjectConnection recoConn = createConnectionFromRelation(fromObj, acluster);
+                TEveArrow *connArrow = createConnectionArrow(recoConn);
                 if (connArrow)
                 {
                     connArrow->SetMainColor(kGreen); // Green for reco relations
                     connArrow->SetMainAlpha(gRecoArrowAlpha);
+                    std::string strid = "Conn " + cluStrID;
+                    connArrow->SetName(strid.c_str());
                     recoConnectionList->AddElement(connArrow);
+                }
+                else
+                {
+                    TGeoSphere *sphere = new TGeoSphere(0, 2.0); // 2 cm radius sphere
+                    TEveGeoShape *marker = new TEveGeoShape("Primary_Reco");
+                    marker->SetShape(sphere);
+                    marker->SetMainColor(kGreen);
+                    marker->SetMainTransparency(20);
+                    marker->RefMainTrans().SetPos(0.1 * recoConn.m_daughterX, 0.1 * recoConn.m_daughterY, 0.1 * recoConn.m_daughterZ);
+                    std::string strid = "Primary cluster " + cluStrID;
+                    marker->SetName(strid.c_str());
+                    recoConnectionList->AddElement(marker);
                 }
             }
         }
