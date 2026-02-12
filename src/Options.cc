@@ -142,6 +142,11 @@ void Options::parse(int &argc, char** &argv) {
     draw_tpc_cylinder = false;
     tpc_innerBarrelColor = kCyan;
     tpc_outerBarrelColor = kMagenta;
+    draw_axis = false;
+    draw_camera_center_x = 0.0;
+    draw_camera_center_y = 0.0;
+    draw_camera_center_z = 0.0;
+    draw_axis_length = 500.0;  // 500 cm = 5 m default
     printHelp=false;
     printVersion=false;
     show_reco_diff = false;
@@ -160,6 +165,11 @@ void Options::parse(int &argc, char** &argv) {
         } else if (read_bool(argc, argv, i, "-draw.tpc.cylinder", draw_tpc_cylinder)) {
         } else if(read_int(argc, argv, i, "-draw.tpc.innerBarrelColor", tpc_innerBarrelColor)) {
         } else if(read_int(argc, argv, i, "-draw.tpc.outerBarrelColor", tpc_outerBarrelColor)) {
+        } else if (read_bool(argc, argv, i, "-draw.axis", draw_axis)) {
+        } else if(read_double(argc, argv, i, "-draw.camera_center.x", draw_camera_center_x)) {
+        } else if(read_double(argc, argv, i, "-draw.camera_center.y", draw_camera_center_y)) {
+        } else if(read_double(argc, argv, i, "-draw.camera_center.z", draw_camera_center_z)) {
+        } else if(read_double(argc, argv, i, "-draw.axis.length", draw_axis_length)) {
         } else if (read_bool(argc, argv, i, "-h", printHelp)) {
         } else if (read_bool(argc, argv, i, "-v", printVersion)) {
         } else if(add_string(argc, argv, i, "-coll.caloHit.filterOutSuffix", coll_caloHit_filterOutSuffixes))  {

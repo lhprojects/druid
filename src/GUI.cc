@@ -165,6 +165,11 @@ void make_gui()
 		d->Connect("Clicked()", "TGLViewer", glviewer, "PickCameraCenter()");
 		frmRotateColor->AddFrame(d);
 
+		// Button to set camera center to selected element
+		TGTextButton* setCenterBtn = new TGTextButton(frmRotateColor, "Center on Selected");
+		setCenterBtn->Connect("Clicked()", "EventNavigator", fh, "SetCameraCenterToSelected()");
+		frmRotateColor->AddFrame(setCenterBtn);
+
 		d = new TGPictureButton(frmRotateColor, gClient->GetPicture(icondir + "ColorSelection.png"));
 		d->Connect("Clicked()", "EventNavigator", fh, "colorReroll()");
 		frmRotateColor->AddFrame(d);

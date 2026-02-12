@@ -9,7 +9,7 @@
 //    Author: Manqi Ruan (LLR)                                               //
 //                                                                           //
 //    Last Modified: 17, Dec 2011, cleaning                                  //
-//                                                                           // 
+//                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
 
@@ -53,16 +53,17 @@ TVector3 computeVtx(const TrackState* state) {
 	double refZ = state->getReferencePoint()[2];
 	double phi = state->getPhi();
 	double d0 = state->getD0();
+	double z0 = state->getZ0();
 	float x0 = refX - d0 * sin(phi);
 	float y0 = refY + d0 * cos(phi);
-	float z0 = refZ + z0;
-	return TVector3(x0, y0, z0);
+	float z = refZ + z0;
+	return TVector3(x0, y0, z);
 }
 
 
 TVector3 computeMomentum(const TrackState* state, double Bz = 3.5 /* T */)
 {
-	const double kAlpha = 2.99792458e-4;     
+	const double kAlpha = 2.99792458e-4;
     if (!state) return TVector3();              // protect against null
 
     const double omega      = state->getOmega();          // 1/mm
@@ -142,7 +143,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 	double MCTracksMinLength = 0.5; //cm
 	double MCTracksLowEThresh = 0.01;
 
-	enum ERecType { kRecAucune=0, kElectron, kPositron, kMuonP, kMuonN, kPionP, kPionN, kKaonP, kKaonN, 
+	enum ERecType { kRecAucune=0, kElectron, kPositron, kMuonP, kMuonN, kPionP, kPionN, kKaonP, kKaonN,
 		kProton, kNeutron, kKlong, kGamma, kIonP, kIonN, kNeutralHad, kLowE, kLowETrack, kSubTrack, kRecLast};
 
 	struct PFODisplay {
@@ -180,9 +181,9 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 	float charge;
 	float KineticE, GenRadius, EndRadius;
 	// float clusterE;
-	int Ncluster = 0; 
-	int NTrack = 0; 
-	int NTrackHits = 0; 
+	int Ncluster = 0;
+	int NTrack = 0;
+	int NTrackHits = 0;
 
 	//	TEveCompound* cpdLowE = new TEveCompound(PFOParams[kLowE].Name, "All low E tracks");
 	TEveTrackList* cpdLowE = new TEveTrackList(PFOParams[kLowE].Name);
@@ -215,7 +216,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 	TEveTrackList* cpdIonP = new TEveTrackList("Undef_chargedP");	//default: charged tracks besides the defined ones
 	cpdIonP->SetMainColor(PFOParams[kIonP].Color);
 
-	TEveTrackList* cpdIonN = new TEveTrackList("Undef_chargedN");    
+	TEveTrackList* cpdIonN = new TEveTrackList("Undef_chargedN");
 	cpdIonN->SetMainColor(PFOParams[kIonN].Color);
 
 	TEveTrackList* cpdNeutralHad = new TEveTrackList("NeutralHad");
@@ -233,6 +234,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 	try{
 
 		int nMCParticle =  col->getNumberOfElements();
+		double totalEnergy = 0.0;
 
 		TEveTrackList * currCompound = 0;
 
@@ -260,29 +262,30 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 			}
 			else
 			{
-				PID = -99; 
+				PID = -99;
 				PID = part->getType();
-				//cout<<"PID not identified. Please check your data file."<<endl;	
+				cout<<"PID not identified. Please check your data file."<<endl;
 			}
 
 			charge=part->getCharge();
 			mass=part->getMass();
 			energy=part->getEnergy();
+			totalEnergy += energy;
 			Vtx = part->getReferencePoint();
 
 			/*
 			   if(Ncluster>0)
 			   {
-			   End = part->getClusters()[0]->getPosition();	//Test 
+			   End = part->getClusters()[0]->getPosition();	//Test
 			   }
-			   else 
+			   else
 			 */
 			if(NTrack==1 || (charge && NTrack>1))
 			{
 				// FIXME: for charge and NTrack>1, first is the parent, is this what we need?
 				Track * a_trk = part->getTracks()[0];
 				NTrackHits = a_trk->getTrackerHits().size();
-				if(NTrackHits>0){ 
+				if(NTrackHits>0){
 					TrackerHit * last_hit = a_trk->getTrackerHits()[NTrackHits - 1];
 					End = last_hit->getPosition();
 				}else{
@@ -302,7 +305,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 
 			if(Ncluster > 0 && HiddenPFOCluster)
 			{
-	
+
 				TVector3 HitScale(0.5*PFOHitSize, 0.5*PFOHitSize, 0.5*PFOHitSize);
 
 				int colorindex = 0;
@@ -311,7 +314,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 				{
 					if(PID == 22)
 						colorindex = 5;
-					else if(PID == 11)	
+					else if(PID == 11)
 						colorindex = 53;
 					else if(PID == -11)
 						colorindex = 98;
@@ -322,11 +325,11 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 					else if(PID == 211)
 						colorindex = 96;
 					else if(PID == -211)
-						colorindex = 66; 
+						colorindex = 66;
 					else if(PID == 310 || PID == 130 || PID == 2112)
 						colorindex = 3;
 					else
-						colorindex = 10; 
+						colorindex = 10;
 				}
 				else if( gGUIManager.PFOHitColourType == 2 )
 				{
@@ -389,16 +392,16 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 
 			//	//used for which has not pass PID
 
-			if(PID == 0) 
+			if(PID == 0)
 			{
-				if(charge > 0) PID = 211; 
-				else if(charge < 0) PID = -211; 
-				else PID = 22; 
+				if(charge > 0) PID = 211;
+				else if(charge < 0) PID = -211;
+				else PID = 22;
 			}
 
 			printf("PFO %d, PID=%d, Charge=%f, Energy=%f, mom=(%f,%f,%f),"
 					"KineticE=%f, Vtx=(%.3f, %.3f, %.3f), End=(%.3f, %.3f, %.3f)\n",
-			       i, PID, charge, energy, 
+			       i, PID, charge, energy,
 					px, py, pz,
 				   KineticE,
 			       Vtx[0], Vtx[1], Vtx[2],
@@ -407,7 +410,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 			for(Track *trk : part->getTracks())
 			{
 				if(trk->getTrackStates().size() > 0)
-				{					
+				{
 					TrackState const *s = trk->getTrackState(TrackState::AtFirstHit);
 					double ch = chargeSign(s, -3.5);
 					TVector3 trkMom = computeMomentum(s, -3.5);
@@ -426,7 +429,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 
 				printf("Global Vtx %f %f %f\n", Vtx.fX, Vtx.fY, Vtx.fZ);
 				printf("Global End %f %f %f\n", End.fX, End.fY, End.fZ);
-				printf("Global Momentum %f(%f,%f,%f)\n", sqrt(px*px + py*py + pz*pz), 
+				printf("Global Momentum %f(%f,%f,%f)\n", sqrt(px*px + py*py + pz*pz),
 						px, py, pz);
 
 				for (TrackState *trkState : trkStateVec)
@@ -499,14 +502,14 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 
 					printf("Global Vtx %f %f %f\n", Vtx.fX, Vtx.fY, Vtx.fZ);
 					printf("Global End %f %f %f\n", End.fX, End.fY, End.fZ);
-					printf("Global Momentum %f(%f,%f,%f)\n", sqrt(px*px + py*py + pz*pz), 
+					printf("Global Momentum %f(%f,%f,%f)\n", sqrt(px*px + py*py + pz*pz),
 							px, py, pz);
 
 					for (TrackState *trkState : trkStateVec)
 					{
 						TVector3 trkMom = computeMomentum(trkState, -3.5);
 						int trkstateCharge = chargeSign(trkState, -3.5);
-						TVector3 location = computeVtx(trkState);						
+						TVector3 location = computeVtx(trkState);
 						double mom = trkMom.Mag();
 						if (trkState->getLocation() == TrackState::AtFirstHit)
 						{
@@ -597,7 +600,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 								"Vtx = (%.3f, %.3f, %.3f) cm\n"
 								"End = (%.3f, %.3f, %.3f) cm\n"
 								"Momentum = (%.3f, %.3f, %.3f)",
-								name.c_str(), energy, gDisplayState.getEventNumber(), i, (double)trkCharge, 
+								name.c_str(), energy, gDisplayState.getEventNumber(), i, (double)trkCharge,
 								PID, energy,
 								10*trkVtx[0], 10*trkVtx[1], 10*trkVtx[2],
 								10*trkEnd[0], 10*trkEnd[1], 10*trkEnd[2],
@@ -629,7 +632,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 					case 13:
 						TrType = kMuonN;
 						currCompound = cpdMuons;
-						break;	
+						break;
 
 					case -13:
 						TrType = kMuonP;
@@ -639,7 +642,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 					case 211:
 						TrType = kPionP;
 						currCompound = cpdPions;
-						break;	
+						break;
 
 					case -211:
 						TrType = kPionN;
@@ -659,7 +662,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 					case 2212:
 						TrType = kProton;
 						currCompound = cpdProtons;
-						break; 
+						break;
 
 					default:
 						TrType = kIonP;
@@ -677,15 +680,15 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 
 				track = new TEveTrack(ChargedTrack, propsetCharged);
 
-				if(currCompound != cpdMuons)	//Any track besides Muon track will be end at the first calorimeter hit it corresponding to 
+				if(currCompound != cpdMuons)	//Any track besides Muon track will be end at the first calorimeter hit it corresponding to
 				{
 					TEvePathMark* pm = new TEvePathMark(TEvePathMark::kDecay);
 					pm->fV.Set(End);
 					track->AddPathMark( *pm );
 				}
 
-			} 
-			else 
+			}
+			else
 			{
 
 				if( KineticE < MCTracksLowEThresh )
@@ -696,7 +699,7 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 				else if( Ncluster == 0 && false)
 				{
 					TrType = kLowETrack;
-					currCompound = LowETrack; 
+					currCompound = LowETrack;
 				}
 				else
 				{
@@ -708,14 +711,14 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 							 currCompound = cpdNeutralHad;
 							 break;
 
-						case 22:    
+						case 22:
 							 TrType = kGamma;
 							 currCompound = cpdRecGamma;
 							 break;
 
 						case 2112:
 							 TrType = kNeutron;
-							 currCompound = cpdNeutrons;		
+							 currCompound = cpdNeutrons;
 							 break;
 
 						case 130:
@@ -723,8 +726,8 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 							 currCompound = cpdKlongs;
 							 break;
 
-						default:    
-							 TrType = kNeutralHad;	
+						default:
+							 TrType = kNeutralHad;
 							 currCompound = cpdNeutralHad;
 							 break;
 					}
@@ -768,6 +771,9 @@ TEveElementList* BuildPFOs( LCCollection* col, string name )
 			currCompound->MakeTracks();
 
 		}
+
+		// Update name with total energy
+		RecoTracks->SetName(Form("%s (Total E=%.3f GeV)", name.c_str(), totalEnergy));
 
 		RecoTracks->AddElement(LowETrack);
 		RecoTracks->AddElement(cpdLowE);

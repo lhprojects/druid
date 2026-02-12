@@ -23,10 +23,14 @@
 #include "Rtypes.h"
 #include "TGNumberEntry.h"
 #include "TEveManager.h"
+#include "TEveSelection.h"
 #include "TGLViewer.h"
 #include "TEveBoxSet.h"
 #include "TEveRGBAPalette.h"
 #include "TEveRGBAPaletteOverlay.h"
+#include "KeySymbols.h"
+#include "TGMsgBox.h"
+#include "TGClient.h"
 #include "Options.h"
 
 extern LCReader* lcReader;
@@ -126,7 +130,7 @@ void EventNavigator::setCollection()
     printf(" Update colors \n");
 
     UpdateTrackColorsByMCParticle();
-    
+
     if (gGUIManager.HitColourType == 7)
     {
         UpdateHitColorsToMatchMCParticles();
@@ -149,7 +153,7 @@ void EventNavigator::setCellColour(int ds) {
   gGUIManager.HitColourType = ds;
   if (gGUIManager.HitColourType < 0) gGUIManager.HitColourType = 0;
   if (gGUIManager.HitColourType > 7) gGUIManager.HitColourType = 0;
-  
+
   if(gGUIManager.HitColourType == 7) {
     // For color scheme 7, just update the colors to match current MCParticle visibility
     UpdateHitColorsToMatchMCParticles();
@@ -157,7 +161,7 @@ void EventNavigator::setCellColour(int ds) {
     // For other color schemes (0-6), need to reload to apply new coloring
     load_collections(evt, LCIO::SIMCALORIMETERHIT);
   }
-  
+
   return;
 }
 
@@ -400,4 +404,51 @@ void EventNavigator::OnTrackVisibilityChanged()
 void EventNavigator::OnElementVisibilityChanged()
 {
 	OnTrackVisibilityChanged();
+}
+
+void EventNavigator::SetCameraCenterToSelected() {
+	TEveSelection* selection = gEve->GetSelection();
+	if (!selection) {
+		std::cerr << "Error: No selection object available" << std::endl;
+		return;
+	}
+
+	TEveElement::List_i i = selection->BeginChildren();
+	if (i != selection->EndChildren()) {
+		TEveElement* el = *i;
+		std::cerr << "Setting camera center to: " << el->GetElementName() << std::endl;
+		SetCameraCenterToElement(el);
+	} else {
+		std::cerr << "Warning: No element selected. Please click on an element first." << std::endl;
+	}
+}
+
+// Reset camera center to origin
+void EventNavigator::ResetCameraCenter() {
+	TGLViewer* viewer = gEve->GetDefaultGLViewer();
+	if (viewer) {
+		viewer->CurrentCamera().SetCenterVec(0.0, 0.0, 0.0);
+		viewer->RequestDraw();
+		std::cerr << "Camera center reset to origin (0, 0, 0)" << std::endl;
+	}
+}
+
+// Handle keyboard events
+Bool_t EventNavigator::HandleKeyEvent(Event_t* event) {
+	if (event->fType == kGKeyPress) {
+		UInt_t keysym = event->fCode;
+
+		// Check for 'C' or 'c' key to set rotation center to selected object
+		if (keysym == kKey_c || keysym == kKey_C) {
+			SetCameraCenterToSelected();
+			return kTRUE;
+		}
+
+		// Check for 'R' or 'r' key to reset rotation center to origin
+		if (keysym == kKey_r || keysym == kKey_R) {
+			ResetCameraCenter();
+			return kTRUE;
+		}
+	}
+	return kFALSE;
 }

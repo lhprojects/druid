@@ -93,6 +93,14 @@ TimeAnnotation* ann;
 int AnnoTime = 0;
 int MarkerTime = 0;
 
+// Reset camera center to origin
+void ResetCameraCenter() {
+  TGLViewer* viewer = gEve->GetDefaultGLViewer();
+  if (viewer) {
+    viewer->CurrentCamera().SetCenterVec(0.0, 0.0, 0.0);
+  }
+}
+
 /*
 void OriginParticle()
 {
@@ -569,6 +577,9 @@ void load_collections(LCEvent* evt, string coltype) {
           << " Slcio data file is not available! skip loading event information. "
           << std::endl;
   }
+
+  // Reset camera center to origin when switching events
+  ResetCameraCenter();
 
   return;
 }

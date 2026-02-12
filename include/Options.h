@@ -15,6 +15,11 @@ struct Options
     bool draw_tpc_cylinder;
     int tpc_innerBarrelColor;
     int tpc_outerBarrelColor;
+    bool draw_axis;
+    double draw_camera_center_x;
+    double draw_camera_center_y;
+    double draw_camera_center_z;
+    double draw_axis_length;
     bool printVersion;
     bool printHelp;
     std::vector<std::string> coll_caloHit_filterOutSuffixes;

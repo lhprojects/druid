@@ -1,6 +1,11 @@
 #ifndef EVENT_NAV_
 #define EVENT_NAV_
 
+#include "Rtypes.h"
+
+// Forward declarations
+struct Event_t;
+
 class EventNavigator
 {
 public:
@@ -28,5 +33,8 @@ public:
 	void setColorUnderflowLimit();
 	void OnTrackVisibilityChanged();
 	void OnElementVisibilityChanged();
+	void SetCameraCenterToSelected();
+	void ResetCameraCenter();
+	Bool_t HandleKeyEvent(Event_t* event);
 };
 #endif // EVENT_NAV_

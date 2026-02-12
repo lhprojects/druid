@@ -6,13 +6,14 @@
 //    Author: Manqi Ruan (LLR)                                               //
 //                                                                           //
 //    Last Modified: 17, Nov 2011, Cleaning					                 //
-//                                                                           // 
+//                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
 
 #include "GlobalDefs.hh"
 #include "Options.h"
 #include "TEveManager.h"
+#include "TEveSelection.h"
 #include "TEveCompound.h"
 #include "TEveGeoNode.h"
 #include "TEvePointSet.h"
@@ -26,6 +27,15 @@
 #include "TGeoShape.h"
 #include "TGeoMatrix.h"
 #include "TEveGeoShape.h"
+#include "TEveArrow.h"
+#include "TEveBoxSet.h"
+#include "TEveBox.h"
+#include "TGLViewer.h"
+#include "TGLUtil.h"
+#include "TGLPhysicalShape.h"
+#include "TGMsgBox.h"
+#include "TGClient.h"
+#include "TContextMenu.h"
 #include "MultiView.hh"
 
 #include <string>
@@ -36,7 +46,7 @@
 extern bool FlagMultiView;
 extern MultiView * gMultiView;
 extern TGeoManager * gGeoManager;
-extern bool flagslcio; 
+extern bool flagslcio;
 extern int flagdetectortype;	//after loadevt...
 
 using namespace std;
@@ -82,7 +92,7 @@ void BuildGeoGDMLRoot(std::string gdmlroot){
 	TEveGeoTopNode* its = new TEveGeoTopNode(gGeoManager, node1, 1, 1, 10000);
 
 	int k_nodes = node1->GetNdaughters();
-	std::cout<<endl<<"   Number of Daughters (Geometry elements): "<<k_nodes<<std::endl<<std::endl;;    
+	std::cout<<endl<<"   Number of Daughters (Geometry elements): "<<k_nodes<<std::endl<<std::endl;;
 	if(k_nodes>100) std::cout<<"   Too much first generation daughters! Will only print partial of their names."<<std::endl<<std::endl;
 	for(int i=0; i<k_nodes; i++)
 	{
@@ -109,7 +119,7 @@ void BuildGeoGDMLRoot(std::string gdmlroot){
 		else if(gdmlroot.find("ild_DHCAL") != string::npos) flagdetectortype = 1;
 		else if(gdmlroot.find("TB") != string::npos) flagdetectortype = 2;				//Only Simu...?
 		else if(gdmlroot.find("clic") != string::npos) flagdetectortype = 5;			//both, clic and sid with sid...
-		else if(gdmlroot.find("sid") != string::npos) flagdetectortype = 3;			
+		else if(gdmlroot.find("sid") != string::npos) flagdetectortype = 3;
 	}
 
 
@@ -120,7 +130,7 @@ void BuildGeoGDMLRoot(std::string gdmlroot){
 		std::vector<std::string> VolProjection;
 		std::vector<std::string> VolName;
 
-		// if(ild)	
+		// if(ild)
 		if(detectormatching || !flagslcio)
 		{
 			if(flagdetectortype == 0)		//AHCAL: ILD00
@@ -292,7 +302,7 @@ void BuildGeoGDMLRoot(std::string gdmlroot){
 
 			int numVolPro = VolProjection.size();
 
-			if(VolProjection.size() != VolName.size() ) 
+			if(VolProjection.size() != VolName.size() )
 			{
 				std::cout<<std::endl<<"   Vol of Projection and Name doesn't match! "<<std::endl<<std::endl;
 			}else if(VolName.size()>0){
@@ -327,7 +337,7 @@ void BuildGeoGDMLRoot(std::string gdmlroot){
 				std::cout<<std::endl<<"   Projection Finished. "<<std::endl;
 			}
 
-		}	
+		}
 		//	std::cout<<" GEOMETRY MULTIVIEW LOADED FINISHED"<<std::endl;
 	}
 }
@@ -339,8 +349,8 @@ void DrawTPCCylinder(double innerRadius, double outerRadius, double halfZ) {
 		return;
 	}
 
-	std::cout << "Drawing TPC cylinder: innerR=" << innerRadius 
-	          << ", outerR=" << outerRadius 
+	std::cout << "Drawing TPC cylinder: innerR=" << innerRadius
+	          << ", outerR=" << outerRadius
 	          << ", halfZ=" << halfZ << std::endl;
 
 	// Create inner cylinder (transparent)
@@ -371,3 +381,134 @@ void DrawTPCCylinder(double innerRadius, double outerRadius, double halfZ) {
 	}
 }
 
+void DrawOriginAxes(double x, double y, double z, double length) {
+	if (length <= 0) {
+		std::cout << "Invalid axis length. Skipping origin axes drawing." << std::endl;
+		return;
+	}
+
+	// Convert from mm to cm (LCIO uses mm, TEve uses cm)
+	double x_cm = x / 10.0;
+	double y_cm = y / 10.0;
+	double z_cm = z / 10.0;
+	double len_cm = length / 10.0;
+
+	// Create X axis (red)
+	TEveArrow* xAxis = new TEveArrow(len_cm, 0, 0, x_cm, y_cm, z_cm);
+	xAxis->SetMainColor(kRed);
+	xAxis->SetTubeR(0.01);
+	xAxis->SetConeR(0.02);
+	xAxis->SetConeL(0.1);
+	xAxis->SetPickable(kTRUE);
+	xAxis->SetName("X Axis");
+	gEve->AddGlobalElement(xAxis);
+
+	// Create Y axis (green)
+	TEveArrow* yAxis = new TEveArrow(0, len_cm, 0, x_cm, y_cm, z_cm);
+	yAxis->SetMainColor(kGreen);
+	yAxis->SetTubeR(0.01);
+	yAxis->SetConeR(0.02);
+	yAxis->SetConeL(0.1);
+	yAxis->SetPickable(kTRUE);
+	yAxis->SetName("Y Axis");
+	gEve->AddGlobalElement(yAxis);
+
+	// Create Z axis (blue)
+	TEveArrow* zAxis = new TEveArrow(0, 0, len_cm, x_cm, y_cm, z_cm);
+	zAxis->SetMainColor(kBlue);
+	zAxis->SetTubeR(0.01);
+	zAxis->SetConeR(0.02);
+	zAxis->SetConeL(0.1);
+	zAxis->SetPickable(kTRUE);
+	zAxis->SetName("Z Axis");
+	gEve->AddGlobalElement(zAxis);
+
+	if (FlagMultiView && gMultiView) {
+		gMultiView->ImportEventRPhi(xAxis);
+		gMultiView->ImportEventRhoZ(xAxis);
+		gMultiView->ImportEventRPhi(yAxis);
+		gMultiView->ImportEventRhoZ(yAxis);
+		gMultiView->ImportEventRPhi(zAxis);
+		gMultiView->ImportEventRhoZ(zAxis);
+	}
+}
+
+void DrawOriginAxesBuiltIn() {
+	std::cout << "Enabling built-in axes overlay on GL viewer" << std::endl;
+
+	TGLViewer* viewer = gEve->GetDefaultGLViewer();
+	if (!viewer) {
+		std::cout << "No GL viewer available" << std::endl;
+		return;
+	}
+
+	// Enable the axis overlay at camera center
+	// SetGuideState(axesType, axesDepthTest, referenceOn, referencePos)
+	// Convert from mm to cm (LCIO uses mm, ROOT/TEve uses cm)
+	Double_t refPos[3] = {
+		gOptions.draw_camera_center_x / 10.0,
+		gOptions.draw_camera_center_y / 10.0,
+		gOptions.draw_camera_center_z / 10.0
+	};
+
+	viewer->SetGuideState(TGLUtil::kAxesOrigin, kTRUE, kTRUE, refPos);
+	// Alternative axes types:
+	// TGLUtil::kAxesEdge - axes at edge of viewport
+	// TGLUtil::kAxesOrigin - axes at world origin
+	// TGLUtil::kAxesNone - no axes
+
+	// Request redraw
+	viewer->RequestDraw();
+}
+
+// Global function to set camera center to an element's position
+void SetCameraCenterToElement(TEveElement* el) {
+	if (!el) {
+		std::cerr << "No element selected" << std::endl;
+		return;
+	}
+
+	TGLViewer* viewer = gEve->GetDefaultGLViewer();
+	if (!viewer) {
+		std::cerr << "No GL viewer available" << std::endl;
+		return;
+	}
+
+	std::cerr << "Element type: " << el->IsA()->GetName() << std::endl;
+	std::cerr << "Element name: " << el->GetElementName() << std::endl;
+
+	Double_t center[3] = {0, 0, 0};
+
+	// Check if it's a TEveBox (individual calorimeter hit box)
+	if (el->IsA()->InheritsFrom("TEveBox")) {
+		TEveBox* box = dynamic_cast<TEveBox*>(el);
+		if (box) {
+			// TEveBox has 8 vertices, GetVertex(i) returns const Float_t* to vertex[3]
+			// Calculate center as average of all 8 vertices
+			for (int i = 0; i < 8; i++) {
+				const Float_t* v = box->GetVertex(i);
+				center[0] += v[0];
+				center[1] += v[1];
+				center[2] += v[2];
+			}
+			center[0] /= 8.0;
+			center[1] /= 8.0;
+			center[2] /= 8.0;
+			std::cerr << "TEveBox - calculated center from 8 vertices" << std::endl;
+		}
+	} else {
+		// For other element types, use transformation matrix
+		Double_t* trans = el->RefMainTrans().ArrT();
+		center[0] = trans[12];
+		center[1] = trans[13];
+		center[2] = trans[14];
+		std::cerr << "Using transformation matrix" << std::endl;
+	}
+
+	std::cerr << "Setting camera center to: (" << center[0] << ", "
+	          << center[1] << ", " << center[2] << ")" << std::endl;
+
+	// Set the camera center
+	viewer->CurrentCamera().SetCenterVec(center[0], center[1], center[2]);
+	viewer->RequestDraw();
+}

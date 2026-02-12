@@ -11,6 +11,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "GlobalDefs.hh"
+#include "EventNavigator.hh"
 #include "TSystem.h"
 #include "TEveManager.h"
 #include "TTree.h"
@@ -18,6 +19,8 @@
 #include "TGLViewer.h"
 #include "TObjString.h"
 #include "TROOT.h"
+#include "TGWindow.h"
+#include "KeySymbols.h"
 #include "TRootBrowser.h"
 #include "TStyle.h"
 #include "TRint.h"
@@ -97,6 +100,11 @@ TString ExtendName(TString inputString){
 	return ExtName;
 }
 
+// Global callback function for keyboard events - must be extern "C" for ROOT CINT
+extern "C" Bool_t HandleGLViewerKeyEvent(Event_t* event) {
+	return gEventNavigator.HandleKeyEvent(event);
+}
+
 int main(int argc, char *argv[])
 {
 	std::cout << "argv[0] = " << argv[0] << std::endl;
@@ -126,9 +134,11 @@ int main(int argc, char *argv[])
 	TGLViewer* Ori = gEve->GetDefaultGLViewer();
 	Ori->SetIgnoreSizesOnUpdate(kTRUE);
 
-	make_gui();
+	// Add keyboard event handler for 'C' key
+	Ori->Connect("KeyPressed(Event_t*)", nullptr, nullptr, "HandleGLViewerKeyEvent(Event_t*)");
 
-	flagslcio = kFALSE;
+	make_gui();
+    flagslcio = kFALSE;
 	bool flaggeoroot = kFALSE;
 	bool flaggeoxml = kFALSE;
 	bool flagEventNumber = kFALSE;
@@ -264,6 +274,11 @@ int main(int argc, char *argv[])
 	    gOptions.tpc_outerRadius > 0 &&
 	    gOptions.tpc_halfZ > 0) {
 		DrawTPCCylinder(gOptions.tpc_innerRadius, gOptions.tpc_outerRadius, gOptions.tpc_halfZ);
+	}
+
+	// Draw coordinate axes at camera center if option is enabled
+	if (gOptions.draw_axis) {
+		DrawOriginAxesBuiltIn();
 	}
 
 	gEve->FullRedraw3D(kTRUE);
