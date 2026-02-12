@@ -336,7 +336,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
             {
                 if (1)
                 {
-                    std::string strid = "Conn " + cluStrID;
+                    std::string strid = Form("Conn %s E=%.3f", cluStrID.c_str(), ClusterEnergy);
                     connArrow->SetName(strid.c_str());
                     truthConnectionList->AddElement(connArrow);
                 }
@@ -352,7 +352,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                     marker->SetMainColor(kYellow);
                     marker->SetMainTransparency(20);
                     marker->RefMainTrans().SetPos(0.1 * conn.m_daughterX, 0.1 * conn.m_daughterY, 0.1 * conn.m_daughterZ);
-                    std::string strid = "Primary cluster " + cluStrID;
+                    std::string strid = Form("Primary cluster %s E=%.3f", cluStrID.c_str(), ClusterEnergy);
                     marker->SetName(strid.c_str());
                     truthConnectionList->AddElement(marker);
                 }
@@ -388,7 +388,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                         // Use red for diff mode, yellow for normal reco
                         connArrow->SetMainColor(gOptions.show_reco_diff ? gRecoDiffArrowColor : gRecoArrowColor);
                         connArrow->SetMainAlpha(gRecoArrowAlpha);
-                        std::string strid = "Conn " + cluStrID;
+                        std::string strid = Form("Conn %s E=%.3f", cluStrID.c_str(), ClusterEnergy);
                         connArrow->SetName(strid.c_str());
                         recoConnectionList->AddElement(connArrow);
                     }
@@ -401,7 +401,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                         marker->SetMainColor(gOptions.show_reco_diff ? gRecoDiffArrowColor : gRecoArrowColor);
                         marker->SetMainTransparency(20);
                         marker->RefMainTrans().SetPos(0.1 * recoConn.m_daughterX, 0.1 * recoConn.m_daughterY, 0.1 * recoConn.m_daughterZ);
-                        std::string strid = "Primary cluster " + cluStrID;
+                        std::string strid = Form("Primary cluster %s E=%.3f", cluStrID.c_str(), ClusterEnergy);
                         marker->SetName(strid.c_str());
                         recoConnectionList->AddElement(marker);
                     }

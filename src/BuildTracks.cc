@@ -12,6 +12,8 @@
 #include "TEveVSDStructs.h"
 #include "TEvePathMark.h"
 #include "TEveArrow.h"
+#include "TEveGeoShape.h"
+#include "TGeoSphere.h"
 #include "TVector3.h"
 #include "lcio.h"
 #include "EVENT/LCCollection.h"
@@ -130,8 +132,6 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
         mom = helix2.m_momentum;
 
 
-
-
         // Convert to Eve units (cm) and create vectors
         TEveVector vtx(firstPos[0] / 10.0, firstPos[1] / 10.0, firstPos[2] / 10.0);
         TEveVector end(lastPos[0] / 10.0, lastPos[1] / 10.0, lastPos[2] / 10.0);
@@ -225,7 +225,21 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
                         // Use red for diff mode, yellow for normal reco
                         recoArrow->SetMainColor(gOptions.show_reco_diff ? gRecoDiffArrowColor : gRecoArrowColor);
                         recoArrow->SetMainAlpha(gRecoArrowAlpha);
+                        recoArrow->SetName(Form("Conn %s p=%.3f", trackID.c_str(), momentum));
                         recoConnectionList->AddElement(recoArrow);
+                    } else {
+                        // draw ball when arrow can't be created (no mother connection point)
+                        TGeoSphere *sphere = new TGeoSphere(0, 2.0); // 2 cm radius ball
+                        TEveGeoShape *marker = new TEveGeoShape(Form("NoConn %s", trackID.c_str()));
+                        marker->SetShape(sphere);
+                        marker->SetMainColor(kRed);
+                        marker->SetMainAlpha(0.9);
+                        marker->RefMainTrans().SetPos(0.1*recoConn.m_daughterX,
+                                                       0.1*recoConn.m_daughterY,
+                                                       0.1*recoConn.m_daughterZ);
+                        marker->SetPickable(kTRUE);
+                        marker->SetTitle(Form("No Connection Arrow\\nTrack: %s\\nNo mother connection point", trackID.c_str()));
+                        recoConnectionList->AddElement(marker);
                     }
                 }
             }
