@@ -46,7 +46,10 @@ using namespace std;
 using namespace EVENT;
 
 float ClusterHitSize = 1.0;
-float gRecoArrowAlpha = 0.3;  // Alpha transparency for reco arrows
+float gRecoArrowAlpha = 0.8;  // Alpha transparency for reco arrows
+int gRecoArrowColor = kYellow;  // Color for reco arrows (yellow by default)
+int gTruthArrowColor = kGreen;  // Color for truth arrows
+int gRecoDiffArrowColor = kRed;  // Color for reco diff arrows (showing errors)
 extern int flagdetectortype;
 const float HCALBarrelLengthILD = 309.3;
 const float HCALBarrelLengthSID = 320.0;
@@ -210,7 +213,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
 
     TEveElementList *recoConnectionList = new TEveElementList;
     recoConnectionList->SetName((name + "_reco_conn").c_str());
-    recoConnectionList->SetMainColor(kGreen);
+    recoConnectionList->SetMainColor(gRecoArrowColor);
 
     float HitEn, ClusterEnergy;
     HitEn = 0;
@@ -324,9 +327,9 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
         if (true)
         {
             LCObjectConnection conn = gTruthHelper.GetTracsterConnection(acluster);
-            std::cout << "a cluster" << cluStrID << " from " << conn.m_mother << std::endl;
-            std::cout << conn.m_daughterX << " " << conn.m_daughterY << " " << conn.m_daughterZ << std::endl;
-            std::cout << conn.m_motherX << " " << conn.m_motherY << " " << conn.m_motherZ << std::endl;
+            //std::cout << "a cluster" << cluStrID << " from " << conn.m_mother << std::endl;
+            //std::cout << conn.m_daughterX << " " << conn.m_daughterY << " " << conn.m_daughterZ << std::endl;
+            //std::cout << conn.m_motherX << " " << conn.m_motherY << " " << conn.m_motherZ << std::endl;
 
             TEveArrow *connArrow = createConnectionArrow(conn);
             if (connArrow)
@@ -360,32 +363,48 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
         if (!recoRelationMap.empty())
         {
             auto it = recoRelationMap.find(acluster);
-            
+
             if (it != recoRelationMap.end())
             {
                 // Found the relation for this cluster
                 LCObject *fromObj = it->second;
                 LCObjectConnection recoConn = createConnectionFromRelation(fromObj, acluster);
-                TEveArrow *connArrow = createConnectionArrow(recoConn);
-                if (connArrow)
+
+                // Check if we should show this arrow
+                bool showArrow = true;
+                if (gOptions.show_reco_diff)
                 {
-                    connArrow->SetMainColor(kGreen); // Green for reco relations
-                    connArrow->SetMainAlpha(gRecoArrowAlpha);
-                    std::string strid = "Conn " + cluStrID;
-                    connArrow->SetName(strid.c_str());
-                    recoConnectionList->AddElement(connArrow);
+                    // Only show if reco differs from truth
+                    LCObjectConnection truthConn = gTruthHelper.GetTracsterConnection(acluster);
+                    // Compare mother objects - show if they differ
+                    showArrow = (recoConn.m_mother != truthConn.m_mother);
                 }
-                else
+
+                if (showArrow)
                 {
-                    TGeoSphere *sphere = new TGeoSphere(0, 2.0); // 2 cm radius sphere
-                    TEveGeoShape *marker = new TEveGeoShape("Primary_Reco");
-                    marker->SetShape(sphere);
-                    marker->SetMainColor(kGreen);
-                    marker->SetMainTransparency(20);
-                    marker->RefMainTrans().SetPos(0.1 * recoConn.m_daughterX, 0.1 * recoConn.m_daughterY, 0.1 * recoConn.m_daughterZ);
-                    std::string strid = "Primary cluster " + cluStrID;
-                    marker->SetName(strid.c_str());
-                    recoConnectionList->AddElement(marker);
+                    TEveArrow *connArrow = createConnectionArrow(recoConn);
+                    if (connArrow)
+                    {
+                        // Use red for diff mode, yellow for normal reco
+                        connArrow->SetMainColor(gOptions.show_reco_diff ? gRecoDiffArrowColor : gRecoArrowColor);
+                        connArrow->SetMainAlpha(gRecoArrowAlpha);
+                        std::string strid = "Conn " + cluStrID;
+                        connArrow->SetName(strid.c_str());
+                        recoConnectionList->AddElement(connArrow);
+                    }
+                    else
+                    {
+                        TGeoSphere *sphere = new TGeoSphere(0, 2.0); // 2 cm radius sphere
+                        TEveGeoShape *marker = new TEveGeoShape("Primary_Reco");
+                        marker->SetShape(sphere);
+                        // Use red for diff mode, yellow for normal reco
+                        marker->SetMainColor(gOptions.show_reco_diff ? gRecoDiffArrowColor : gRecoArrowColor);
+                        marker->SetMainTransparency(20);
+                        marker->RefMainTrans().SetPos(0.1 * recoConn.m_daughterX, 0.1 * recoConn.m_daughterY, 0.1 * recoConn.m_daughterZ);
+                        std::string strid = "Primary cluster " + cluStrID;
+                        marker->SetName(strid.c_str());
+                        recoConnectionList->AddElement(marker);
+                    }
                 }
             }
         }

@@ -57,6 +57,9 @@ extern EventState gEventState;
 
 // Global visualization settings
 extern float gRecoArrowAlpha;
+extern int gRecoArrowColor;
+extern int gTruthArrowColor;
+extern int gRecoDiffArrowColor;
 
 struct GUIManager
 {

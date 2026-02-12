@@ -22,7 +22,9 @@ struct Options
     std::vector<std::string> coll_MCP_collections;
     std::vector<std::string> coll_track_collections;
     std::vector<std::string> coll_cluster_collections;
+    std::vector<std::string> coll_pfo_collections;  // Reconstructed particle collections
     std::string coll_recoRelation_collections;  // Reco relation collection name for cluster connections
+    bool show_reco_diff;  // Show only connections where reco differs from truth
     std::string exe_path;  // Path to executable (from argv[0] or --exe-path option)
     
     Options();

@@ -13,8 +13,11 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
  -coll.simCaloHit.filterOutSuffix HitsEven \
  -coll.simCaloHit.filterOutSuffix HitsOdd \
  -coll.track.add MarlinTrkTracks \
+ -coll.track.add ClupatraTrackSegments \
  -coll.cluster.add PandoraClusters \
+ -coll.pfo.add PandoraPFOs \
  -coll.recoRelation MLRecoRelation \
+ -show.recoDiff \
  -tpc.innerRadius 372.1 \
  -tpc.outerRadius 1692.1 \
  -tpc.halfZ 2225 \
@@ -24,3 +27,4 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
  "$@"
 
 
+# -coll.track.add ClupatraTrackSegments \

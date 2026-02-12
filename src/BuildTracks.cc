@@ -55,7 +55,7 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
 
     TEveElementList* recoConnectionList = new TEveElementList();
     recoConnectionList->SetName((name + "_reco_conn").c_str());
-    recoConnectionList->SetMainColor(kGreen);
+    recoConnectionList->SetMainColor(gRecoArrowColor);
 
     // Build a map of reco relations for fast lookup
     std::map<LCObject*, LCObject*> recoRelationMap = buildRecoRelationMap(evt, gOptions.coll_recoRelation_collections);
@@ -207,12 +207,26 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
 
                 LCObjectConnection recoConn = createConnectionFromRelation(fromObj, track);
 
-                TEveArrow *recoArrow = createConnectionArrow(recoConn);
-                if (recoArrow)
+                // Check if we should show this arrow
+                bool showArrow = true;
+                if (gOptions.show_reco_diff)
                 {
-                    recoArrow->SetMainColor(kGreen);  // Green for reco relations
-                    recoArrow->SetMainAlpha(gRecoArrowAlpha);
-                    recoConnectionList->AddElement(recoArrow);
+                    // Only show if reco differs from truth
+                    LCObjectConnection truthConn = gTruthHelper.GetTracsterConnection(track);
+                    // Compare mother objects - show if they differ
+                    showArrow = (recoConn.m_mother != truthConn.m_mother);
+                }
+
+                if (showArrow)
+                {
+                    TEveArrow *recoArrow = createConnectionArrow(recoConn);
+                    if (recoArrow)
+                    {
+                        // Use red for diff mode, yellow for normal reco
+                        recoArrow->SetMainColor(gOptions.show_reco_diff ? gRecoDiffArrowColor : gRecoArrowColor);
+                        recoArrow->SetMainAlpha(gRecoArrowAlpha);
+                        recoConnectionList->AddElement(recoArrow);
+                    }
                 }
             }
         }
@@ -373,7 +387,7 @@ TEveArrow* createConnectionArrow(LCObjectConnection const &conn)
 	connArrow->SetTubeR(tubeR);
 	connArrow->SetConeR(coneR);
 	connArrow->SetConeL(coneL);
-	connArrow->SetMainColor(kRed);
+	connArrow->SetMainColor(gTruthArrowColor);
 	connArrow->SetMainAlpha(0.8);
 	connArrow->SetPickable(kTRUE);
 	connArrow->SetTitle(Form("Mother-Daughter Connection\\nMother type: %s",

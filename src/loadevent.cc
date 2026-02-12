@@ -131,7 +131,7 @@ void load_event(int EventNum) {
   cout << "Start to display event " << EventNum << endl;
   cout << "LCIO Flag " << flagslcio << endl;
 
-  std::cout << "Run number : " << gDisplayState.getRunNumber() << 
+  std::cout << "Run number : " << gDisplayState.getRunNumber() <<
                 ", Event number : " << EventNum << std::endl;
 
   try {
@@ -368,7 +368,7 @@ void load_collections(LCEvent* evt, string coltype) {
             gMultiView->ImportEventRhoZ(gGUIManager._MCPList);
         }
         gTruthHelper.m_MCPCollNames = MCPartCollNames;
-        
+
         for(std::string const &name : MCPartCollNames)
         {
             std::cout << " MCParticle collection for TruthHelper: " << name << std::endl;
@@ -385,14 +385,14 @@ void load_collections(LCEvent* evt, string coltype) {
         gGUIManager._SimCaloHitType.clear();
         gGUIManager.m_SimCaloHitCollNames.clear();
     }
-    
+
     if (coltype == "" || coltype == LCIO::CALORIMETERHIT)
     {
         gGUIManager._CaloHitBoxes.clear();
         gGUIManager._CaloHitType.clear();
         gGUIManager.m_CaloHitCollNames.clear();
     }
-    
+
 
     for (std::string const &collName : collNames) {
       LCCollection* col = evt->getCollection(collName);
@@ -469,53 +469,52 @@ void load_collections(LCEvent* evt, string coltype) {
         collectionClasses[ct]->AddElement(temp);
       } else if (ct == LCIO::TRACK) {
         // Handled separately after all collections are scanned
-      } else if (ct == LCIO::RECONSTRUCTEDPARTICLE) {
-        if (collName == "PandoraPFOs" || collName == "PandoraPFANewPFOs" ||
-            CollHead == "Arbor") {  // Supposed to be modified if user needed...
-          TEveElementList* temp = BuildPFOs(col, collName);
+      } else if (ct == LCIO::RECONSTRUCTEDPARTICLE)
+      {
+          if (equals_any(collName, gOptions.coll_pfo_collections) || gOptions.coll_pfo_collections.empty())
+          {
+              TEveElementList *temp = BuildPFOs(col, collName);
+              temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
+              collectionClasses[ct]->AddElement(temp);
+          }
+      }
+      else if (ct == LCIO::LCRELATION &&
+               (CollHead == "Henri" || CollHead == "InitH" ||
+                CollHead == "InitE" || CollHead == "Links"))
+      {
+          HenriCount++;
+          TEveCompound *temp = ConnectTrees(col, collName);
           temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
           collectionClasses[ct]->AddElement(temp);
-        } else if (collName == "Durham_4Jets" || collName == "Durham_6Jets") {
-          TEveElementList* temp = RecoJets(col, collName);
-          temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
-          collectionClasses[ct]->AddElement(temp);
-        } else {
-          cout << "   " << collName
-               << " is currently considering as Reconstructed Particles... "
-                  "will skip "
+      }
+      else if (ct == LCIO::CLUSTER)
+      {
+          TEveElementList *temp = ClusterHits(evt, col, collName);
+          if (temp)
+          {
+              temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
+              collectionClasses[ct]->AddElement(temp);
+          }
+      }
+      else
+      {
+          cout << "  Unknown collection type " << col->getTypeName()
+               << " for collection " << collName << endl
                << endl;
-        }
-      } else if (ct == LCIO::LCRELATION &&
-                 (CollHead == "Henri" || CollHead == "InitH" ||
-                  CollHead == "InitE" || CollHead == "Links")) {
-        HenriCount++;
-        TEveCompound* temp = ConnectTrees(col, collName);
-        temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
-        collectionClasses[ct]->AddElement(temp);
-      } else if (ct == LCIO::CLUSTER) {
-        TEveElementList* temp = ClusterHits(evt, col, collName);
-        if (temp) {
-          temp->SetRnrSelfChildren(FlagDraw, FlagDraw);
-          collectionClasses[ct]->AddElement(temp);
-        }
-      } else {
-        cout << "  Unknown collection type " << col->getTypeName()
-             << " for collection " << collName << endl
-             << endl;
       }
     }
 
 
-    
+
     // Update SimCalorimeterHit colors after ALL collections are loaded
     // Only for color scheme 7 (MCParticle colors)
-    if ((coltype == LCIO::SIMCALORIMETERHIT || coltype == "") && 
+    if ((coltype == LCIO::SIMCALORIMETERHIT || coltype == "") &&
         gGUIManager.HitColourType == 7) {
       UpdateHitColorsToMatchMCParticles();
     }
 
     if (coltype == "" || coltype == LCIO::TRACK)
-    {        
+    {
         loadTracks(evt, LCIO::TRACK);
     }
 

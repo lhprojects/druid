@@ -81,13 +81,19 @@ bool read_int(int argc, char** argv, int &index, char const *arg, int &value) {
 bool read_bool(int argc, char** argv, int &index, char const *arg, bool &value) {
     if (strcmp(argv[index], arg) != 0) return false;
 
-    // If the argument is present, set the value to true
+    // Check if the next argument exists and is "false" or "0"
+    if (index + 1 < argc && (strcmp(argv[index + 1], "false") == 0
+        || strcmp(argv[index + 1], "0") == 0)) {
+        value = false;
+        index += 2;
+        return true;
+    }
+
+    // If next arg exists and is not "false" or "0", or if no next arg, set to true
     value = true;
     index++;
     return true;
-}
-
-bool add_string(int argc, char** argv, int &index, char const *arg, std::vector<std::string> &value) {
+}bool add_string(int argc, char** argv, int &index, char const *arg, std::vector<std::string> &value) {
     if (strcmp(argv[index], arg) != 0) return false;
 
     // Check if the next argument is available and not another option
@@ -120,7 +126,7 @@ bool read_string(int argc, char** argv, int &index, char const *arg, std::string
     }
 }
 
-Options::Options() 
+Options::Options()
 {
 }
 
@@ -138,6 +144,7 @@ void Options::parse(int &argc, char** &argv) {
     tpc_outerBarrelColor = kMagenta;
     printHelp=false;
     printVersion=false;
+    show_reco_diff = false;
     exe_path = "";  // Will be set from argv[0] if not provided via option
     coll_recoRelation_collections = "";  // Empty by default, must be explicitly set
 
@@ -157,15 +164,18 @@ void Options::parse(int &argc, char** &argv) {
         } else if (read_bool(argc, argv, i, "-v", printVersion)) {
         } else if(add_string(argc, argv, i, "-coll.caloHit.filterOutSuffix", coll_caloHit_filterOutSuffixes))  {
         } else if(add_string(argc, argv, i, "-coll.simCaloHit.filterOutSuffix", coll_simCaloHit_filterOutSuffixes))  {
-        } else if(add_string(argc, argv, i, "-coll.MCP.add", coll_MCP_collections)) 
+        } else if(add_string(argc, argv, i, "-coll.MCP.add", coll_MCP_collections))
         {
-        } else if(add_string(argc, argv, i, "-coll.track.add", coll_track_collections)) 
+        } else if(add_string(argc, argv, i, "-coll.track.add", coll_track_collections))
         {
-        } else if(add_string(argc, argv, i, "-coll.cluster.add", coll_cluster_collections)) 
+        } else if(add_string(argc, argv, i, "-coll.cluster.add", coll_cluster_collections))
         {
-        } else if(read_string(argc, argv, i, "-coll.recoRelation", coll_recoRelation_collections)) 
+        } else if(add_string(argc, argv, i, "-coll.pfo.add", coll_pfo_collections))
         {
-        } else if(read_string(argc, argv, i, "--exe-path", exe_path)) 
+        } else if(read_string(argc, argv, i, "-coll.recoRelation", coll_recoRelation_collections))
+        {
+        } else if (read_bool(argc, argv, i, "-show.recoDiff", show_reco_diff)) {
+        } else if(read_string(argc, argv, i, "--exe-path", exe_path))
         {
         } else {
             if(argv[i][0] == '-') {
