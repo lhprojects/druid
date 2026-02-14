@@ -60,7 +60,7 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
     recoConnectionList->SetMainColor(gRecoArrowColor);
 
     // Build a map of reco relations for fast lookup
-    std::map<LCObject*, LCObject*> recoRelationMap = buildRecoRelationMap(evt, gOptions.coll_recoRelation_collections);
+    std::map<LCObject*, RecoRelationData> recoRelationMap = buildRecoRelationMap(evt, gOptions.coll_recoRelation_collections);
 
     // Create track propagator for charged tracks
     TEveTrackPropagator* propsetCharged = new TEveTrackPropagator();
@@ -203,7 +203,8 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
             if(it != recoRelationMap.end())
             {
                 // Found the relation for this track
-                LCObject *fromObj = it->second;
+                LCObject *fromObj = it->second.fromObj;
+                float weight = it->second.weight;
 
                 LCObjectConnection recoConn = createConnectionFromRelation(fromObj, track);
 
@@ -214,7 +215,7 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
                     // Only show if reco differs from truth
                     LCObjectConnection truthConn = gTruthHelper.GetTracsterConnection(track);
                     // Compare mother objects - show if they differ
-                    showArrow = (recoConn.m_mother != truthConn.m_mother);
+                    showArrow = (recoConn.m_mother != truthConn.m_mother) || weight > 1;
                 }
 
                 if (showArrow)

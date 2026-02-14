@@ -197,8 +197,16 @@ class TEveArrow;
 struct LCObjectConnection;
 TEveArrow* createConnectionArrow(LCObjectConnection const &conn);
 
+// Structure to hold reco relation data
+struct RecoRelationData {
+    EVENT::LCObject* fromObj;
+    float weight;
+    RecoRelationData() : fromObj(nullptr), weight(0.0f) {}
+    RecoRelationData(EVENT::LCObject* obj, float w) : fromObj(obj), weight(w) {}
+};
+
 // Build a map of LCRelations for fast lookup
-std::map<EVENT::LCObject*, EVENT::LCObject*> buildRecoRelationMap(EVENT::LCEvent* evt, const std::string& relationName);
+std::map<EVENT::LCObject*, RecoRelationData> buildRecoRelationMap(EVENT::LCEvent* evt, const std::string& relationName);
 
 // Create LCObjectConnection from a relation mother and daughter object
 LCObjectConnection createConnectionFromRelation(EVENT::LCObject* motherObj, EVENT::LCObject* daughterObj);

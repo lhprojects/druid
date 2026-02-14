@@ -60,9 +60,9 @@ TRandom *r0 = new TRandom();
 
 // Build a map of LCRelations for fast lookup
 // Returns a map from daughter (to) object to mother (from) object
-std::map<LCObject *, LCObject *> buildRecoRelationMap(LCEvent *evt, const std::string &relationName)
+std::map<LCObject *, RecoRelationData> buildRecoRelationMap(LCEvent *evt, const std::string &relationName)
 {
-    std::map<LCObject *, LCObject *> recoRelationMap;
+    std::map<LCObject *, RecoRelationData> recoRelationMap;
 
     if (relationName.empty())
     {
@@ -80,8 +80,9 @@ std::map<LCObject *, LCObject *> buildRecoRelationMap(LCEvent *evt, const std::s
 
             LCObject *fromObj = relation->getFrom();
             LCObject *toObj = relation->getTo();
-            recoRelationMap[fromObj] = toObj;
-            //std::cout << "  Reco relation: fromObj=" << fromObj << " toObj=" << toObj << std::endl;
+            float weight = relation->getWeight();
+            recoRelationMap[fromObj] = RecoRelationData(toObj, weight);
+            //std::cout << "  Reco relation: fromObj=" << fromObj << " toObj=" << toObj << " weight=" << weight << std::endl;
         }
         std::cout << "  Built reco relation map with " << recoRelationMap.size() << " entries from " << relationName
                   << " with " << rel->getNumberOfElements() << std::endl;
@@ -239,7 +240,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
     TVector3 HitScale(0.5 * ClusterHitSize, 0.5 * ClusterHitSize, 0.5 * ClusterHitSize);
 
     // Build a map of relations for fast lookup
-    std::map<LCObject *, LCObject *> recoRelationMap = buildRecoRelationMap(evt, gOptions.coll_recoRelation_collections);
+    std::map<LCObject *, RecoRelationData> recoRelationMap = buildRecoRelationMap(evt, gOptions.coll_recoRelation_collections);
 
     for (int iC = 0; iC < nCluster; iC++)
     {
@@ -367,7 +368,8 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
             if (it != recoRelationMap.end())
             {
                 // Found the relation for this cluster
-                LCObject *fromObj = it->second;
+                LCObject *fromObj = it->second.fromObj;
+                float weight = it->second.weight;
                 LCObjectConnection recoConn = createConnectionFromRelation(fromObj, acluster);
 
                 // Check if we should show this arrow
@@ -377,7 +379,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                     // Only show if reco differs from truth
                     LCObjectConnection truthConn = gTruthHelper.GetTracsterConnection(acluster);
                     // Compare mother objects - show if they differ
-                    showArrow = (recoConn.m_mother != truthConn.m_mother);
+                    showArrow = (recoConn.m_mother != truthConn.m_mother) || weight > 1;
                 }
 
                 if (showArrow)
