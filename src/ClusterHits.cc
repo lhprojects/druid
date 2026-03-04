@@ -307,7 +307,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                 }
                 if (Flag_AttachTextToHit)
                 {
-                    // Extract hit type (ECAL/HCAL)
+                    // Extract hit type (ECAL/HCAL) and layout (Barrel/Endcap)
                     CHT cht(Hits[j]->getType());
                     std::string hitTypeStr = "Unknown";
                     if (cht.is(CHT::ecal)) {
@@ -323,15 +323,26 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                     } else if (cht.is(CHT::bcal)) {
                         hitTypeStr = "BCAL";
                     }
+                    
+                    std::string layoutStr = "Unknown";
+                    if (cht.is(CHT::barrel)) {
+                        layoutStr = "Barrel";
+                    } else if (cht.is(CHT::endcap)) {
+                        layoutStr = "Endcap";
+                    } else if (cht.is(CHT::plug)) {
+                        layoutStr = "Plug";
+                    } else if (cht.is(CHT::ring)) {
+                        layoutStr = "Ring";
+                    }
 
                     q->SetTitle(Form("CluserHit%d, En = %.3f keV\n"
                                      "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n"
-                                     "Hit Type = %s\n"
+                                     "Hit Type = %s %s, Layer = %d\n"
                                      "Cluster %s\n"
                                      "Cluster Energy = %f GeV\n",
                                      j,
                                      HitEn * 1E6, 10 * HitPosition[0], 10 * HitPosition[1], 10 * HitPosition[2],
-                                     hitTypeStr.c_str(),
+                                     hitTypeStr.c_str(), layoutStr.c_str(), cht.layer(),
                                      cluStrID.c_str(), ClusterEnergy));
                 }
                 q->SetPickable(kTRUE);
