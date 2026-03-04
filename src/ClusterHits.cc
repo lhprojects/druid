@@ -40,6 +40,7 @@
 #include "segment3.h"
 #include "GlobalDefs.hh"
 #include "TruthHelper.h"
+#include "../thirdparty/MLPFA/thirdparty/PFAA/include/PFAA/CalorimeterHitType.h"
 
 using namespace lcio;
 using namespace std;
@@ -306,12 +307,31 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                 }
                 if (Flag_AttachTextToHit)
                 {
+                    // Extract hit type (ECAL/HCAL)
+                    CHT cht(Hits[j]->getType());
+                    std::string hitTypeStr = "Unknown";
+                    if (cht.is(CHT::ecal)) {
+                        hitTypeStr = "ECAL";
+                    } else if (cht.is(CHT::hcal)) {
+                        hitTypeStr = "HCAL";
+                    } else if (cht.is(CHT::yoke)) {
+                        hitTypeStr = "YOKE";
+                    } else if (cht.is(CHT::lcal)) {
+                        hitTypeStr = "LCAL";
+                    } else if (cht.is(CHT::lhcal)) {
+                        hitTypeStr = "LHCAL";
+                    } else if (cht.is(CHT::bcal)) {
+                        hitTypeStr = "BCAL";
+                    }
+
                     q->SetTitle(Form("CluserHit%d, En = %.3f keV\n"
                                      "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n"
+                                     "Hit Type = %s\n"
                                      "Cluster %s\n"
                                      "Cluster Energy = %f GeV\n",
                                      j,
                                      HitEn * 1E6, 10 * HitPosition[0], 10 * HitPosition[1], 10 * HitPosition[2],
+                                     hitTypeStr.c_str(),
                                      cluStrID.c_str(), ClusterEnergy));
                 }
                 q->SetPickable(kTRUE);
