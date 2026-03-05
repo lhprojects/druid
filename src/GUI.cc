@@ -185,6 +185,17 @@ void make_gui()
 		frmMain->AddFrame(frmRotateColor);
 	}
 
+	// Display Options
+	{
+		TGGroupFrame *frmDisplay = new TGGroupFrame(frmMain, "Display Options");
+		frmMain->AddFrame(frmDisplay, new TGLayoutHints(kLHintsNormal, 2, 2, 0, 0));
+
+		TGCheckButton *tpcCylinderButton = new TGCheckButton(frmDisplay, "Show TPC Cylinder");
+		frmDisplay->AddFrame(tpcCylinderButton);
+		tpcCylinderButton->SetState(gOptions.draw_tpc_cylinder ? kButtonDown : kButtonUp);
+		tpcCylinderButton->Connect("Clicked()", "EventNavigator", fh, "ToggleTPCCylinder()");
+	}
+
 	//MCParticle, PTCut
 	{
 		TGGroupFrame *frmPTCut = new TGGroupFrame(frmMain, "En Cut (MCParticle); E Cut (Cell) ");

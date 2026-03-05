@@ -228,8 +228,28 @@ void EventNavigator::HitTextAttach() {
   load_collections(evt, LCIO::SIMCALORIMETERHIT);
   load_collections(evt, LCIO::TRACKERHIT);
   load_collections(evt, LCIO::SIMTRACKERHIT);
-  load_collections(evt, LCIO::CLUSTER);
-  return;
+}
+
+void EventNavigator::ToggleTPCCylinder() {
+  gOptions.draw_tpc_cylinder = !gOptions.draw_tpc_cylinder;
+  std::cout << "TPC Cylinder Display = " << (gOptions.draw_tpc_cylinder ? "ON" : "OFF") << std::endl;
+
+  // Find and toggle visibility of TPC cylinders in the global element list
+  TEveElement* innerCyl = gEve->GetGlobalScene()->FindChild("TPC Inner Radius");
+  TEveElement* outerCyl = gEve->GetGlobalScene()->FindChild("TPC Outer Radius");
+
+  if (innerCyl && outerCyl) {
+    innerCyl->SetRnrSelf(gOptions.draw_tpc_cylinder);
+    outerCyl->SetRnrSelf(gOptions.draw_tpc_cylinder);
+    gEve->Redraw3D();
+  } else if (gOptions.draw_tpc_cylinder &&
+             gOptions.tpc_innerRadius > 0 &&
+             gOptions.tpc_outerRadius > 0 &&
+             gOptions.tpc_halfZ > 0) {
+    // If cylinders don't exist yet and we're turning on, create them
+    DrawTPCCylinder(gOptions.tpc_innerRadius, gOptions.tpc_outerRadius, gOptions.tpc_halfZ);
+    gEve->Redraw3D();
+  }
 }
 
 void EventNavigator::PTCutModify() {

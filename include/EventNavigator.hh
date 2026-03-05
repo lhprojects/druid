@@ -25,6 +25,7 @@ public:
 	void ClusterHitSizeModify();
 	void ScaleModify();
 	void HitTextAttach();
+	void ToggleTPCCylinder();
 	void SizeModify();
 	void setEnergyScale();
 	void GotoEvent();
