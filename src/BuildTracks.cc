@@ -83,58 +83,110 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
         const double* firstPos = hits.front()->getPosition();
         const double* lastPos = hits.back()->getPosition();
 
-
-        // Get track parameters
-        double omega = track->getOmega();
-        double tanLambda = track->getTanLambda();
-        double phi0 = track->getPhi();
-        double d0 = track->getD0();
-        double z0 = track->getZ0();
-
-        // Calculate momentum using MLPFA Helix
-        MLPFA::Helix helix(phi0, d0, z0, omega, tanLambda, gOptions.BField);
-        MLPFA::Vect3f mom = helix.m_momentum;
-        double momentum = sqrt(mom.GetX() * mom.GetX() +
-                              mom.GetY() * mom.GetY() +
-                              mom.GetZ() * mom.GetZ());
-
-        int charge = (omega > 0) ? 1 : -1;
-
         // print out all tracker hit
-        if (false)
+        bool print_track = false;
+        if (itrk == 15 || itrk == 16 || itrk == 17 || itrk == 14 || itrk == 13) // example: print hits for track 16
         {
+            print_track = false;
+        }
+
+        if (print_track)
+        {
+            std::string trackID = gTruthHelper.GetStringID(track);
+            std::cout << "Track " << trackID << " has " << hits.size() << " hits:" << std::endl;
             for (int iHit = 0; iHit < static_cast<int>(hits.size()); iHit++)
             {
                 const double *pos = hits[iHit]->getPosition();
-                const double radius = sqrt(pos[0]*pos[0] + pos[1]*pos[1]);
+                const double radius = sqrt(pos[0] * pos[0] + pos[1] * pos[1]);
                 std::cout << "   " << iHit
-                          << ": (x,y,z) = (" << pos[0] << ", " << pos[1] << ", " << pos[2] << ") " << " r = " << radius << " mm"
-                          << " time: " << hits[iHit]->getTime()
-                          << std::endl;
+                            << ": (x,y,z) = (" << pos[0] << ", " << pos[1] << ", " << pos[2] << ") " << " r = " << radius << " mm"
+                            << " time: " << hits[iHit]->getTime()
+                            << std::endl;
             }
+
+            std::cout << "Global:" << "omega: " << track->getOmega()
+                      << " tanLambda: " << track->getTanLambda()
+                      << " phi: " << track->getPhi() << " d0: " << track->getD0()
+                      << " z0: " << track->getZ0() << std::endl;
+
+            auto print_trackState = [&](int loc, const char* locName)
+             {
+                 const TrackState *trackState = track->getTrackState(loc);
+                 if (trackState) {
+                     std::cout << locName << ":"
+                               << " omega: " << trackState->getOmega()
+                               << " tanLambda: " << trackState->getTanLambda()
+                               << " phi: " << trackState->getPhi()
+                               << " d0: " << trackState->getD0()
+                               << " z0: " << trackState->getZ0() << std::endl;
+                 } else {
+                     std::cout << locName << ": No track state available" << std::endl;
+                 }
+             };
+
+            print_trackState(TrackState::AtIP, "AtIP");
+            print_trackState(TrackState::AtFirstHit, "AtFirstHit");
+            print_trackState(TrackState::AtLastHit, "AtLastHit");
         }
 
         const TrackState *trackState = nullptr;
-        if ((lastPos[2] - firstPos[2]) * mom.GetZ() < 0)
+        double tanLambda = track->getTanLambda();
+        if ((lastPos[2] - firstPos[2]) * tanLambda < 0)
         {
             std::swap(firstPos, lastPos);
             trackState = track->getTrackState(TrackState::AtLastHit);
+            std::cout << "Track " << gTruthHelper.GetStringID(track) << ": Swapped first and last hit based on z and tanLambda sign." << std::endl;
         } else {
             trackState = track->getTrackState(TrackState::AtFirstHit);
         }
         // we need to use momentum at firstPos
+        float const *referencePoint = trackState->getReferencePoint();
         MLPFA::Helix helix2(trackState->getPhi(),
                     trackState->getD0(),
                     trackState->getZ0(),
                     trackState->getOmega(),
                     trackState->getTanLambda(),
                     gOptions.BField);
-        mom = helix2.m_momentum;
+        MLPFA::Vect3f mom = helix2.m_momentum;
+        double const momentum = sqrt(mom.GetX() * mom.GetX() +
+                              mom.GetY() * mom.GetY() +
+                              mom.GetZ() * mom.GetZ());
+        // Get track parameters
+        double omega = trackState->getOmega();
+        int const charge = (omega > 0) ? 1 : -1;
 
+        if(print_track) {
+            std::cout << "Track " << gTruthHelper.GetStringID(track) << ": Charge = " << charge
+                      << ", Momentum = " << momentum << " GeV/c"
+                      << ",\n First Hit = (" << firstPos[0] << ", " << firstPos[1] << ", " << firstPos[2] << ") mm"
+                      << ",\n Last Hit = (" << lastPos[0] << ", " << lastPos[1] << ", " << lastPos[2] << ") mm"
+                      << ",\n Reference Point = (" << referencePoint[0] << ", " << referencePoint[1] << ", " << referencePoint[2] << ") mm"
+                      << std::endl;
+        }
 
         // Convert to Eve units (cm) and create vectors
-        TEveVector vtx(firstPos[0] / 10.0, firstPos[1] / 10.0, firstPos[2] / 10.0);
+        TEveVector vtx(referencePoint[0] / 10.0, referencePoint[1] / 10.0, referencePoint[2] / 10.0);
         TEveVector end(lastPos[0] / 10.0, lastPos[1] / 10.0, lastPos[2] / 10.0);
+
+        MLPFA::Vect3f endPointHelix;
+        MLPFA::Vect3f endPoint0 = MLPFA::Vect3f(lastPos[0] - referencePoint[0],
+                                  lastPos[1] - referencePoint[1],
+                                  lastPos[2] - referencePoint[2]);
+        MLPFA::Vect3f distance;
+        helix2.getPointOnHelix(endPoint0, endPointHelix, distance);
+        end = TEveVector((endPointHelix.GetX() + referencePoint[0]) / 10.0,
+                         (endPointHelix.GetY() + referencePoint[1]) / 10.0,
+                         (endPointHelix.GetZ() + referencePoint[2]) / 10.0);
+
+        if (print_track)
+        {
+            std::cout << "End point on helix: (" << endPointHelix.GetX() + referencePoint[0]
+                      << ", " << endPointHelix.GetY() + referencePoint[1]
+                      << ", " << endPointHelix.GetZ() + referencePoint[2] << ") mm" << std::endl;
+            std::cout << "distance" << ": (xy, z, 3D) = (" << distance.GetX() << ", " << distance.GetY() << ", " << distance.GetZ() << ") mm"
+                      << std::endl;
+        }
+
         // Create TEveRecTrack
         TEveRecTrack* recTrack = new TEveRecTrack();
         recTrack->fV.Set(vtx);

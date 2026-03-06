@@ -323,7 +323,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                     } else if (cht.is(CHT::bcal)) {
                         hitTypeStr = "BCAL";
                     }
-                    
+
                     std::string layoutStr = "Unknown";
                     if (cht.is(CHT::barrel)) {
                         layoutStr = "Barrel";

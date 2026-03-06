@@ -31,7 +31,7 @@ struct Options
     std::string coll_recoRelation_collections;  // Reco relation collection name for cluster connections
     bool show_reco_diff;  // Show only connections where reco differs from truth
     std::string exe_path;  // Path to executable (from argv[0] or --exe-path option)
-    
+
     Options();
     void parse(int &argc, char** &argv);
 
