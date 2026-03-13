@@ -24,6 +24,7 @@
 #include "Options.h"
 #include "MLPFA/MLPFA.h"
 #include "TruthHelper.h"
+#include "ConnectionTitleUtils.h"
 #include <iostream>
 #include <map>
 #include <algorithm>
@@ -85,7 +86,7 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
 
         // print out all tracker hit
         bool print_track = false;
-        if (itrk == 15 || itrk == 16 || itrk == 17 || itrk == 14 || itrk == 13) // example: print hits for track 16
+        if (0) // example: print hits for track 16
         {
             print_track = false;
         }
@@ -245,6 +246,19 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
         LCObjectConnection conn = gTruthHelper.GetTracsterConnection(track);
         TEveArrow* connArrow = createConnectionArrow(conn);
         if (connArrow) {
+            std::string motherID = "None";
+            if (conn.m_mother) {
+                if (conn.m_motherType == 1) {
+                    motherID = gTruthHelper.GetStringID(dynamic_cast<Track*>(conn.m_mother));
+                } else {
+                    motherID = gTruthHelper.GetStringID(dynamic_cast<Cluster*>(conn.m_mother));
+                }
+            }
+            connArrow->SetName(Form("Conn %s->%s p=%.3f", motherID.c_str(), trackID.c_str(), momentum));
+            connArrow->SetPickable(kTRUE);
+            connArrow->SetTitle(ConnectionTitleUtils::buildTruthConnectionTitle(motherID,
+                                                                                 conn.m_motherType,
+                                                                                 trackID).c_str());
             connectionList->AddElement(connArrow);
         }
 
@@ -275,13 +289,31 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
                     TEveArrow *recoArrow = createConnectionArrow(recoConn);
                     if (recoArrow)
                     {
+                        auto [weightType, fixedWeight] = ConnectionTitleUtils::decodeRecoRelationWeight(weight);
+
                         // Use red for diff mode, yellow for normal reco
                         recoArrow->SetMainColor(gOptions.show_reco_diff ? gRecoDiffArrowColor : gRecoArrowColor);
                         recoArrow->SetMainAlpha(gRecoArrowAlpha);
-                        recoArrow->SetName(Form("Conn %s p=%.3f", trackID.c_str(), momentum));
+                        recoArrow->SetPickable(kTRUE);
+                        std::string motherID = "None";
+                        if (recoConn.m_mother) {
+                            if (recoConn.m_motherType == 1) {
+                                motherID = gTruthHelper.GetStringID(dynamic_cast<Track*>(recoConn.m_mother));
+                            } else {
+                                motherID = gTruthHelper.GetStringID(dynamic_cast<Cluster*>(recoConn.m_mother));
+                            }
+                        }
+                        recoArrow->SetName(Form("Conn %s->%s p=%.3f", motherID.c_str(), trackID.c_str(), momentum));
+                        recoArrow->SetTitle(ConnectionTitleUtils::buildRecoConnectionTitle(motherID,
+                                                                                             recoConn.m_motherType,
+                                                                                             trackID,
+                                                                                             fixedWeight).c_str());
                         recoConnectionList->AddElement(recoArrow);
                     } else {
                         // draw ball when arrow can't be created (no mother connection point)
+                        // Calculate fixed weight for display (same logic as above)
+                        auto [weightType, fixedWeight] = ConnectionTitleUtils::decodeRecoRelationWeight(weight);
+
                         TGeoSphere *sphere = new TGeoSphere(0, 2.0); // 2 cm radius ball
                         TEveGeoShape *marker = new TEveGeoShape(Form("NoConn %s", trackID.c_str()));
                         marker->SetShape(sphere);
@@ -291,7 +323,10 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
                                                        0.1*recoConn.m_daughterY,
                                                        0.1*recoConn.m_daughterZ);
                         marker->SetPickable(kTRUE);
-                        marker->SetTitle(Form("No Connection Arrow\\nTrack: %s\\nNo mother connection point", trackID.c_str()));
+                        marker->SetTitle(ConnectionTitleUtils::buildNoRecoConnectionTitle("Track",
+                                                                                           trackID,
+                                                                                           fixedWeight,
+                                                                                           weightType).c_str());
                         recoConnectionList->AddElement(marker);
                     }
                 }
@@ -457,7 +492,7 @@ TEveArrow* createConnectionArrow(LCObjectConnection const &conn)
 	connArrow->SetMainColor(gTruthArrowColor);
 	connArrow->SetMainAlpha(0.8);
 	connArrow->SetPickable(kTRUE);
-	connArrow->SetTitle(Form("Mother-Daughter Connection\\nMother type: %s",
+	connArrow->SetTitle(Form("Mother-Daughter Connection\nMother type: %s",
 	                         conn.m_motherType == 1 ? "Track" : "Cluster"));
 	return connArrow;
 }

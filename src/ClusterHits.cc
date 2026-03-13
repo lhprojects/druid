@@ -40,6 +40,7 @@
 #include "segment3.h"
 #include "GlobalDefs.hh"
 #include "TruthHelper.h"
+#include "ConnectionTitleUtils.h"
 #include "../thirdparty/MLPFA/thirdparty/PFAA/include/PFAA/CalorimeterHitType.h"
 
 using namespace lcio;
@@ -260,6 +261,7 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
             cluDir.SetXYZ(0, 0, 0);
         }
         CalorimeterHitVec Hits = acluster->getCalorimeterHits();
+        FloatVec HitWeights = acluster->getHitContributions();
         CluSize = Hits.size();
         ClusterEnergy = acluster->getEnergy();
         ClusterPID = acluster->getType();
@@ -305,46 +307,49 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                     q->SetMainColor(2);
                     q->SetLineColor(2);
                 }
-                if (Flag_AttachTextToHit)
-                {
-                    // Extract hit type (ECAL/HCAL) and layout (Barrel/Endcap)
-                    CHT cht(Hits[j]->getType());
-                    std::string hitTypeStr = "Unknown";
-                    if (cht.is(CHT::ecal)) {
-                        hitTypeStr = "ECAL";
-                    } else if (cht.is(CHT::hcal)) {
-                        hitTypeStr = "HCAL";
-                    } else if (cht.is(CHT::yoke)) {
-                        hitTypeStr = "YOKE";
-                    } else if (cht.is(CHT::lcal)) {
-                        hitTypeStr = "LCAL";
-                    } else if (cht.is(CHT::lhcal)) {
-                        hitTypeStr = "LHCAL";
-                    } else if (cht.is(CHT::bcal)) {
-                        hitTypeStr = "BCAL";
-                    }
-
-                    std::string layoutStr = "Unknown";
-                    if (cht.is(CHT::barrel)) {
-                        layoutStr = "Barrel";
-                    } else if (cht.is(CHT::endcap)) {
-                        layoutStr = "Endcap";
-                    } else if (cht.is(CHT::plug)) {
-                        layoutStr = "Plug";
-                    } else if (cht.is(CHT::ring)) {
-                        layoutStr = "Ring";
-                    }
-
-                    q->SetTitle(Form("CluserHit%d, En = %.3f keV\n"
-                                     "PosX = %.3f mm, PosY = %.3f mm, PosZ = %.3f mm\n"
-                                     "Hit Type = %s %s, Layer = %d\n"
-                                     "Cluster %s\n"
-                                     "Cluster Energy = %f GeV\n",
-                                     j,
-                                     HitEn * 1E6, 10 * HitPosition[0], 10 * HitPosition[1], 10 * HitPosition[2],
-                                     hitTypeStr.c_str(), layoutStr.c_str(), cht.layer(),
-                                     cluStrID.c_str(), ClusterEnergy));
+                // Keep cluster-hit titles available the same way tracks expose TEve titles.
+                CHT cht(Hits[j]->getType());
+                std::string hitTypeStr = "Unknown";
+                if (cht.is(CHT::ecal)) {
+                    hitTypeStr = "ECAL";
+                } else if (cht.is(CHT::hcal)) {
+                    hitTypeStr = "HCAL";
+                } else if (cht.is(CHT::yoke)) {
+                    hitTypeStr = "YOKE";
+                } else if (cht.is(CHT::lcal)) {
+                    hitTypeStr = "LCAL";
+                } else if (cht.is(CHT::lhcal)) {
+                    hitTypeStr = "LHCAL";
+                } else if (cht.is(CHT::bcal)) {
+                    hitTypeStr = "BCAL";
                 }
+
+                std::string layoutStr = "Unknown";
+                if (cht.is(CHT::barrel)) {
+                    layoutStr = "Barrel";
+                } else if (cht.is(CHT::endcap)) {
+                    layoutStr = "Endcap";
+                } else if (cht.is(CHT::plug)) {
+                    layoutStr = "Plug";
+                } else if (cht.is(CHT::ring)) {
+                    layoutStr = "Ring";
+                }
+
+                float hitWeight = (j < static_cast<int>(HitWeights.size())) ? HitWeights[j] : 1.f;
+                q->SetTitle(Form("Cluster Hit %d\n"
+                                 "Cluster: %s\n"
+                                 "Cluster Energy: %.3f GeV\n"
+                                 "Weight: %.3f\n"
+                                 "Hit Energy: %.3f keV\n"
+                                 "Position: (%.3f, %.3f, %.3f) mm\n"
+                                 "Hit Type: %s %s, Layer %d",
+                                 j,
+                                 cluStrID.c_str(),
+                                 ClusterEnergy,
+                                 hitWeight,
+                                 HitEn * 1E6,
+                                 10 * HitPosition[0], 10 * HitPosition[1], 10 * HitPosition[2],
+                                 hitTypeStr.c_str(), layoutStr.c_str(), cht.layer()));
                 q->SetPickable(kTRUE);
                 if (1)
                 {
@@ -368,8 +373,20 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
             {
                 if (1)
                 {
+                    std::string motherID = "None";
+                    if (conn.m_mother) {
+                        if (conn.m_motherType == 1) {
+                            motherID = gTruthHelper.GetStringID(dynamic_cast<Track *>(conn.m_mother));
+                        } else if (conn.m_motherType == 2) {
+                            motherID = gTruthHelper.GetStringID(dynamic_cast<Cluster *>(conn.m_mother));
+                        }
+                    }
                     std::string strid = Form("Conn %s E=%.3f", cluStrID.c_str(), ClusterEnergy);
                     connArrow->SetName(strid.c_str());
+                    connArrow->SetPickable(kTRUE);
+                    connArrow->SetTitle(ConnectionTitleUtils::buildTruthConnectionTitle(motherID,
+                                                                                         conn.m_motherType,
+                                                                                         cluStrID).c_str());
                     truthConnectionList->AddElement(connArrow);
                 }
             }
@@ -386,6 +403,8 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                     marker->RefMainTrans().SetPos(0.1 * conn.m_daughterX, 0.1 * conn.m_daughterY, 0.1 * conn.m_daughterZ);
                     std::string strid = Form("Primary cluster %s E=%.3f", cluStrID.c_str(), ClusterEnergy);
                     marker->SetName(strid.c_str());
+                    marker->SetPickable(kTRUE);
+                    marker->SetTitle(ConnectionTitleUtils::buildNoTruthConnectionTitle("Cluster", cluStrID).c_str());
                     truthConnectionList->AddElement(marker);
                 }
             }
@@ -401,6 +420,27 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                 // Found the relation for this cluster
                 LCObject *fromObj = it->second.fromObj;
                 float weight = it->second.weight;
+                std::string fromType = "Unknown";
+                std::string fromID = "Unknown";
+                if (Track *fromTrack = dynamic_cast<Track *>(fromObj))
+                {
+                    fromType = "Track";
+                    fromID = gTruthHelper.GetStringID(fromTrack);
+                }
+                else if (Cluster *fromCluster = dynamic_cast<Cluster *>(fromObj))
+                {
+                    fromType = "Cluster";
+                    fromID = gTruthHelper.GetStringID(fromCluster);
+                } else if(fromObj) {
+                    fromType = "Obj";
+                    fromID = "unkonw";
+                }
+                std::cout << "Cluster " << cluStrID
+                          << ": reco relation from " << fromType
+                          << " " << fromID
+                          << " with weight " << weight << std::endl;
+
+                
                 LCObjectConnection recoConn = createConnectionFromRelation(fromObj, acluster);
 
                 // Check if we should show this arrow
@@ -416,13 +456,20 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                 if (showArrow)
                 {
                     TEveArrow *connArrow = createConnectionArrow(recoConn);
+                    auto [weightType, fixedWeight] = ConnectionTitleUtils::decodeRecoRelationWeight(weight);
+                    std::string connectionTitle = ConnectionTitleUtils::buildRecoConnectionTitle(fromID,
+                                                                                                  recoConn.m_motherType,
+                                                                                                  cluStrID,
+                                                                                                  fixedWeight);
                     if (connArrow)
                     {
                         // Use red for diff mode, yellow for normal reco
                         connArrow->SetMainColor(gOptions.show_reco_diff ? gRecoDiffArrowColor : gRecoArrowColor);
                         connArrow->SetMainAlpha(gRecoArrowAlpha);
-                        std::string strid = Form("Conn %s E=%.3f", cluStrID.c_str(), ClusterEnergy);
+                        connArrow->SetPickable(kTRUE);
+                        std::string strid = Form("Conn %s E=%.3f w=%.3f", cluStrID.c_str(), ClusterEnergy, fixedWeight);
                         connArrow->SetName(strid.c_str());
+                        connArrow->SetTitle(connectionTitle.c_str());
                         recoConnectionList->AddElement(connArrow);
                     }
                     else
@@ -436,6 +483,11 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                         marker->RefMainTrans().SetPos(0.1 * recoConn.m_daughterX, 0.1 * recoConn.m_daughterY, 0.1 * recoConn.m_daughterZ);
                         std::string strid = Form("Primary cluster %s E=%.3f", cluStrID.c_str(), ClusterEnergy);
                         marker->SetName(strid.c_str());
+                        marker->SetPickable(kTRUE);
+                        marker->SetTitle(ConnectionTitleUtils::buildNoRecoConnectionTitle("Cluster",
+                                                                                           cluStrID,
+                                                                                           fixedWeight,
+                                                                                           weightType).c_str());
                         recoConnectionList->AddElement(marker);
                     }
                 }
