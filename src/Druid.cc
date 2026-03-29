@@ -130,6 +130,7 @@ int main(int argc, char *argv[])
 	theApp = new TRint("ROOT example", 0, 0);
 
 	TEveManager::Create();
+	gEve->GetBrowser()->Connect("CloseWindow()", "TApplication", gApplication, "Terminate()");
 	gGeoManager->SetVerboseLevel(0);
 	TGLViewer* Ori = gEve->GetDefaultGLViewer();
 	Ori->SetIgnoreSizesOnUpdate(kTRUE);
