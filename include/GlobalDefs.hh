@@ -144,7 +144,6 @@ bool IsNeutrino(int PID);
 
 void BuildGeoGDMLRoot(std::string gdmlroot);
 void DrawTPCCylinder(double innerRadius, double outerRadius, double halfZ);
-void DrawOriginAxes(double x, double y, double z, double length);
 void DrawOriginAxesBuiltIn();
 void SetCameraCenterToElement(TEveElement* el);
 void make_gui();

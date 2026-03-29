@@ -382,12 +382,14 @@ TEveElementList *ClusterHits(LCEvent *evt, LCCollection *col, string name)
                         }
                     }
                     std::string strid = Form("Conn %s E=%.3f", cluStrID.c_str(), ClusterEnergy);
+                    std::string connTitle = ConnectionTitleUtils::buildTruthConnectionTitle(motherID,
+                                                                                            conn.m_motherType,
+                                                                                            cluStrID);
                     connArrow->SetName(strid.c_str());
                     connArrow->SetPickable(kTRUE);
-                    connArrow->SetTitle(ConnectionTitleUtils::buildTruthConnectionTitle(motherID,
-                                                                                         conn.m_motherType,
-                                                                                         cluStrID).c_str());
+                    connArrow->SetTitle(connTitle.c_str());
                     truthConnectionList->AddElement(connArrow);
+
                 }
             }
             else

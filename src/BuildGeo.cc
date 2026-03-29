@@ -381,57 +381,6 @@ void DrawTPCCylinder(double innerRadius, double outerRadius, double halfZ) {
 	}
 }
 
-void DrawOriginAxes(double x, double y, double z, double length) {
-	if (length <= 0) {
-		std::cout << "Invalid axis length. Skipping origin axes drawing." << std::endl;
-		return;
-	}
-
-	// Convert from mm to cm (LCIO uses mm, TEve uses cm)
-	double x_cm = x / 10.0;
-	double y_cm = y / 10.0;
-	double z_cm = z / 10.0;
-	double len_cm = length / 10.0;
-
-	// Create X axis (red)
-	TEveArrow* xAxis = new TEveArrow(len_cm, 0, 0, x_cm, y_cm, z_cm);
-	xAxis->SetMainColor(kRed);
-	xAxis->SetTubeR(0.01);
-	xAxis->SetConeR(0.02);
-	xAxis->SetConeL(0.1);
-	xAxis->SetPickable(kTRUE);
-	xAxis->SetName("X Axis");
-	gEve->AddGlobalElement(xAxis);
-
-	// Create Y axis (green)
-	TEveArrow* yAxis = new TEveArrow(0, len_cm, 0, x_cm, y_cm, z_cm);
-	yAxis->SetMainColor(kGreen);
-	yAxis->SetTubeR(0.01);
-	yAxis->SetConeR(0.02);
-	yAxis->SetConeL(0.1);
-	yAxis->SetPickable(kTRUE);
-	yAxis->SetName("Y Axis");
-	gEve->AddGlobalElement(yAxis);
-
-	// Create Z axis (blue)
-	TEveArrow* zAxis = new TEveArrow(0, 0, len_cm, x_cm, y_cm, z_cm);
-	zAxis->SetMainColor(kBlue);
-	zAxis->SetTubeR(0.01);
-	zAxis->SetConeR(0.02);
-	zAxis->SetConeL(0.1);
-	zAxis->SetPickable(kTRUE);
-	zAxis->SetName("Z Axis");
-	gEve->AddGlobalElement(zAxis);
-
-	if (FlagMultiView && gMultiView) {
-		gMultiView->ImportEventRPhi(xAxis);
-		gMultiView->ImportEventRhoZ(xAxis);
-		gMultiView->ImportEventRPhi(yAxis);
-		gMultiView->ImportEventRhoZ(yAxis);
-		gMultiView->ImportEventRPhi(zAxis);
-		gMultiView->ImportEventRhoZ(zAxis);
-	}
-}
 
 void DrawOriginAxesBuiltIn() {
 	std::cout << "Enabling built-in axes overlay on GL viewer" << std::endl;
@@ -445,13 +394,9 @@ void DrawOriginAxesBuiltIn() {
 	// Enable the axis overlay at camera center
 	// SetGuideState(axesType, axesDepthTest, referenceOn, referencePos)
 	// Convert from mm to cm (LCIO uses mm, ROOT/TEve uses cm)
-	Double_t refPos[3] = {
-		gOptions.draw_camera_center_x / 10.0,
-		gOptions.draw_camera_center_y / 10.0,
-		gOptions.draw_camera_center_z / 10.0
-	};
+	Double_t refPos[3] = {0.0, 0.0, 0.0};
 
-	viewer->SetGuideState(TGLUtil::kAxesOrigin, kTRUE, kTRUE, refPos);
+	viewer->SetGuideState(TGLUtil::kAxesOrigin, kTRUE, kFALSE, refPos);
 	// Alternative axes types:
 	// TGLUtil::kAxesEdge - axes at edge of viewport
 	// TGLUtil::kAxesOrigin - axes at world origin

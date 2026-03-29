@@ -256,12 +256,14 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
                     motherID = gTruthHelper.GetStringID(dynamic_cast<Cluster*>(conn.m_mother));
                 }
             }
+            std::string connTitle = ConnectionTitleUtils::buildTruthConnectionTitle(motherID,
+                                                                                    conn.m_motherType,
+                                                                                    trackID);
             connArrow->SetName(Form("Conn %s->%s p=%.3f", motherID.c_str(), trackID.c_str(), momentum));
             connArrow->SetPickable(kTRUE);
-            connArrow->SetTitle(ConnectionTitleUtils::buildTruthConnectionTitle(motherID,
-                                                                                 conn.m_motherType,
-                                                                                 trackID).c_str());
+            connArrow->SetTitle(connTitle.c_str());
             connectionList->AddElement(connArrow);
+
         }
 
         // Draw mother-daughter connection for reco using the pre-built map
