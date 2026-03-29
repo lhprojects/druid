@@ -47,6 +47,7 @@ struct TruthHelper
     EVENT::MCParticle *GetMainMCP(EVENT::CalorimeterHit *caloHit);
     EVENT::MCParticle *GetMainMCP(EVENT::SimCalorimeterHit *caloHit);
     EVENT::MCParticle *GetMainMCP(EVENT::Track *track);
+    EVENT::MCParticle *GetMCParticle(EVENT::TrackerHit *hit);
 
     std::string GetStringID(EVENT::MCParticle *mcp);
     std::string GetStringID(EVENT::Track *track);
@@ -60,6 +61,7 @@ struct TruthHelper
 private:
     std::map<EVENT::MCParticle*, std::vector<TrackerHitInfo>> m_mcpTrackerHits;
     std::vector<TrackerHitInfo> m_emptyTrackerHits;  // For returning empty reference
+    std::map<EVENT::TrackerHit*, EVENT::MCParticle*> m_trackerHitMCP;
 
 };  // struct TruthHelper
 

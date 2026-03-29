@@ -99,9 +99,11 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
             {
                 const double *pos = hits[iHit]->getPosition();
                 const double radius = sqrt(pos[0] * pos[0] + pos[1] * pos[1]);
+                EVENT::MCParticle *hitMCP = gTruthHelper.GetMCParticle(hits[iHit]);
                 std::cout << "   " << iHit
                             << ": (x,y,z) = (" << pos[0] << ", " << pos[1] << ", " << pos[2] << ") " << " r = " << radius << " mm"
                             << " time: " << hits[iHit]->getTime()
+                            << " MCP: " << gTruthHelper.GetStringID(hitMCP)
                             << std::endl;
             }
 

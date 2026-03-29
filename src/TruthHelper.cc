@@ -151,6 +151,7 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
     mcpartIDs.clear();
     caloHitSimCaloHitMap.clear();
     m_mcpTrackerHits.clear();
+    m_trackerHitMCP.clear();
     mainMCParticles.clear();
     m_cluster2MLCluster.clear();
     trackMainMCP.clear();
@@ -285,6 +286,15 @@ void TruthHelper::ResetMCTruth(EVENT::LCEvent *evt)
 
     std::cout << "Loaded " << gLCIOData.m_caloHitLinks.size() << " CaloHit-SimCaloHit relations" << std::endl;
     std::cout << "caloHitSimCaloHitMap size: " << caloHitSimCaloHitMap.size() << std::endl;
+
+    for (auto *rel : gLCIOData.m_trackerHitLinks)
+    {
+        auto *th  = dynamic_cast<EVENT::TrackerHit*>(rel->getFrom());
+        auto *sth = dynamic_cast<EVENT::SimTrackerHit*>(rel->getTo());
+        if (th && sth && sth->getMCParticle())
+            m_trackerHitMCP[th] = sth->getMCParticle();
+    }
+    std::cout << "Loaded " << m_trackerHitMCP.size() << " TrackerHit-MCP relations" << std::endl;
 
     //std::cout << evt->getCollection("MCParticle")->getNumberOfElements() << " MCParticles loaded." << std::endl;
 
@@ -609,6 +619,13 @@ EVENT::MCParticle *TruthHelper::GetMainMCP(EVENT::Track *track)
         return trackMainMCP[track];
     }
     return nullptr;
+}
+
+EVENT::MCParticle *TruthHelper::GetMCParticle(EVENT::TrackerHit *hit)
+{
+    if (!hit) return nullptr;
+    auto it = m_trackerHitMCP.find(hit);
+    return (it != m_trackerHitMCP.end()) ? it->second : nullptr;
 }
 
 const std::vector<TrackerHitInfo>& TruthHelper::GetTrackerHits(EVENT::MCParticle *mcp)
