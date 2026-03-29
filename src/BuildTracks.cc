@@ -148,7 +148,7 @@ std::tuple<TEveElementList*, TEveElementList*, TEveElementList*> BuildTracks(LCE
                     trackState->getOmega(),
                     trackState->getTanLambda(),
                     gOptions.BField);
-        MLPFA::Vect3f mom = helix2.m_momentum;
+        MLPFA::Vect3f mom = helix2.getMomentumAtReferencePoint();
         double const momentum = sqrt(mom.GetX() * mom.GetX() +
                               mom.GetY() * mom.GetY() +
                               mom.GetZ() * mom.GetZ());
